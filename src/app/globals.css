@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 13, 27, 42; /* legal-navy */
+  --background-start-rgb: 250, 249, 246; /* legal-bone-light */
+  --background-end-rgb: 244, 243, 239; /* legal-bone */
+}
+
+.dark {
+  --foreground-rgb: 250, 249, 246;
+  --background-start-rgb: 8, 17, 29; /* legal-navy-dark */
+  --background-end-rgb: 13, 27, 42; /* legal-navy */
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-family: var(--font-inter), sans-serif;
+}
+
+/* Custom Scrollbar for a premium look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(13, 27, 42, 0.05);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: rgba(250, 249, 246, 0.02);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C5A880; /* legal-gold */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A68050; /* legal-gold-dark */
+}
+
+/* Solid Theme Panels (replacing glassmorphism) */
+.glass-panel-light, .glass-panel-dark {
+  background: #FAF9F6; /* legal-bone-light */
+  border: 1px solid rgba(197, 168, 128, 0.25);
+  box-shadow: 0 4px 20px 0 rgba(13, 27, 42, 0.05);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Support class-based dark mode switching */
+.dark .glass-panel-light, .dark .glass-panel-dark {
+  background: #1B263B; /* legal-navy-light */
+  border-color: rgba(197, 168, 128, 0.2);
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.25);
+}
+
+/* Support system media dark query matching browser screenshot state */
+@media (prefers-color-scheme: dark) {
+  .glass-panel-light, .glass-panel-dark {
+    background: #1B263B; /* legal-navy-light */
+    border-color: rgba(197, 168, 128, 0.2);
+    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.25);
+  }
+}
+
+.glass-input {
+  background: #FAF9F6;
+  border: 1px solid rgba(197, 168, 128, 0.3);
+  transition: all 0.3s ease;
+}
+
+.dark .glass-input {
+  background: #08111D;
+}
+
+@media (prefers-color-scheme: dark) {
+  .glass-input {
+    background: #08111D;
+  }
+}
+
+
+
+.glass-input:focus {
+  border-color: #C5A880;
+  box-shadow: 0 0 10px rgba(197, 168, 128, 0.2);
+  outline: none;
+}
+
+/* Gold shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #C5A880 0%,
+    #F4F3EF 50%,
+    #C5A880 100%
+  );
+  background-size: 200% auto;
+  color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+/* Hover glow effects */
+.gold-glow-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gold-glow-hover:hover {
+  box-shadow: 0 0 15px rgba(197, 168, 128, 0.4);
+  border-color: #C5A880;
+}

@@ -1,0 +1,877 @@
+import { createClient } from '@supabase/supabase-js';
+
+// Types
+export interface Profile {
+  id: string;
+  email: string;
+  full_name: string;
+  role: 'user' | 'admin';
+  created_at: string;
+}
+
+export interface Case {
+  id: string;
+  user_id: string | null; // null for anonymous
+  title: string;
+  description: string;
+  category: string;
+  anonymous: boolean;
+  status: 'Submitted' | 'Under Review' | 'Evidence Review' | 'Assigned' | 'Resolved';
+  urgency: 'Low' | 'Medium' | 'High';
+  readiness_score: number;
+  action_plan: string[];
+  created_at: string;
+}
+
+export interface Evidence {
+  id: string;
+  case_id: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  file_url: string; 
+  uploaded_at: string;
+}
+
+export interface CaseUpdate {
+  id: string;
+  case_id: string;
+  status: string;
+  note: string;
+  created_at: string;
+}
+
+export interface FeedPost {
+  id: string;
+  title: string;
+  content: string;
+  author_name: string;
+  likes: number; // Agree votes
+  disagree_votes: number; // Disagree votes
+  category: string;
+  flagged: boolean;
+  created_at: string;
+}
+
+export interface PostComment {
+  id: string;
+  post_id: string;
+  author_name: string;
+  content: string;
+  created_at: string;
+}
+
+export interface Lawyer {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  specialization: string;
+  experience_years: number;
+  bio?: string;
+  rating: number;
+  avatar_url?: string;
+  is_available: boolean;
+  created_at: string;
+}
+
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+}
+
+export interface AdminNote {
+  id: string;
+  case_id: string;
+  note: string;
+  created_at: string;
+}
+
+// Initialise Supabase Client if env variables exist
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const isSupabaseConfigured = 
+  supabaseUrl && 
+  supabaseUrl !== 'your_supabase_project_url_here' && 
+  supabaseAnonKey && 
+  supabaseAnonKey !== 'your_supabase_anon_key_here';
+
+export const supabase = isSupabaseConfigured
+  ? createClient(supabaseUrl!, supabaseAnonKey!)
+  : null;
+
+// LocalStorage Database Engine (strictly for session caching)
+class LocalStorageDB {
+  getCurrentUser(): Profile | null {
+    if (typeof window === 'undefined') return null;
+    const session = localStorage.getItem('nyaya_mitra_session');
+    if (!session) return null;
+    try {
+      const profile = JSON.parse(session) as Profile;
+      // Basic validation: must have id and email
+      if (!profile || !profile.id || !profile.email) {
+        localStorage.removeItem('nyaya_mitra_session');
+        return null;
+      }
+      return profile;
+    } catch {
+      localStorage.removeItem('nyaya_mitra_session');
+      return null;
+    }
+  }
+
+  setCurrentUser(profile: Profile | null): void {
+    if (typeof window !== 'undefined') {
+      if (profile) {
+        localStorage.setItem('nyaya_mitra_session', JSON.stringify(profile));
+      } else {
+        localStorage.removeItem('nyaya_mitra_session');
+      }
+    }
+  }
+}
+
+export const localDB = new LocalStorageDB();
+
+// ==========================================
+// MOCK DATA & FALLBACK STORAGE FOR COMMUNITY & LAWYERS
+// ==========================================
+
+const DEFAULT_POSTS: FeedPost[] = [
+  {
+    id: 'mock-p1',
+    title: 'How can we claim compensation for arbitrary detention under Article 20?',
+    content: 'I want to ask what the exact procedure is to claim compensation if someone is arbitrarily detained by law enforcement. Article 20, Clause (9) guarantees the right to compensation, but which court handles this and what is the typical timeline for processing?',
+    author_name: 'Aayush Shrestha',
+    likes: 12,
+    disagree_votes: 1,
+    category: 'Constitutional Remedies',
+    flagged: false,
+    created_at: new Date(Date.now() - 3600000 * 24 * 3).toISOString() // 3 days ago
+  },
+  {
+    id: 'mock-p2',
+    title: 'Right to Free Legal Aid for Indigent Persons (Article 20 Clause 10)',
+    content: 'Is free legal aid actively accessible in rural areas of Nepal, or is it mostly restricted to district headquarters? Under Article 20(10), every indigent person has the right to free legal aid. What are your experiences seeking a state-appointed defense lawyer?',
+    author_name: 'Prerna Adhikari',
+    likes: 8,
+    disagree_votes: 0,
+    category: 'Fundamental Rights',
+    flagged: false,
+    created_at: new Date(Date.now() - 3600000 * 12).toISOString() // 12 hours ago
+  },
+  {
+    id: 'mock-p3',
+    title: 'Seeking Legal Guidance on Land Dispute in Kavre district',
+    content: 'Our ancestral land was encroached by local authorities without prior notice or compensation. Does Article 25 (Right to Property) protect us from this? We want to know if anyone has successfully challenged local government land acquisition without compensation in Nepal.',
+    author_name: 'Hari Prasad Devkota',
+    likes: 15,
+    disagree_votes: 2,
+    category: 'Civil Rights',
+    flagged: false,
+    created_at: new Date(Date.now() - 3600000 * 36).toISOString() // 1.5 days ago
+  }
+];
+
+const DEFAULT_COMMENTS: Record<string, PostComment[]> = {
+  'mock-p1': [
+    {
+      id: 'mock-c1',
+      post_id: 'mock-p1',
+      author_name: 'Advocate Shreya Sharma',
+      content: 'Namaste Aayush. You need to file a writ petition under Article 46 / Article 133 of the Constitution in the High Court or Supreme Court. The court will determine if there was a violation of your fundamental right and direct the government to pay compensation as prescribed by the Tort/Compensation Act.',
+      created_at: new Date(Date.now() - 3600000 * 24 * 2).toISOString()
+    }
+  ],
+  'mock-p2': [
+    {
+      id: 'mock-c2',
+      post_id: 'mock-p2',
+      author_name: 'Advocate Nabin Bahadur Thapa',
+      content: 'Usually, you can contact the District Bar Association or the court registrar to assign a legal aid lawyer. In practice, there is a lack of awareness, but the service is free for qualified indigent individuals.',
+      created_at: new Date(Date.now() - 3600000 * 6).toISOString()
+    }
+  ]
+};
+
+const MOCK_LAWYERS: Lawyer[] = [
+  {
+    id: 'l1',
+    name: 'Senior Advocate Dr. Ram Chandra Pokharel',
+    email: 'rc.pokharel@nepallegal.org',
+    phone: '+977-1-4220192',
+    specialization: 'Constitutional Law',
+    experience_years: 25,
+    bio: 'Expert in constitutional remedies, administrative law, and human rights advocacy with over two decades of litigation in the Supreme Court of Nepal.',
+    rating: 4.95,
+    is_available: true,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'l2',
+    name: 'Advocate Shreya Sharma',
+    email: 'shreya.sharma@nyayafirm.com',
+    phone: '+977-9851023948',
+    specialization: 'Fundamental Rights & Civil Law',
+    experience_years: 8,
+    bio: 'Dedicated attorney specializing in constitutional protection, civil liberty disputes, and marginalized group legal representation.',
+    rating: 4.80,
+    is_available: true,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'l3',
+    name: 'Advocate Nabin Bahadur Thapa',
+    email: 'nabin.thapa@legalchambers.com',
+    phone: '+977-9841394850',
+    specialization: 'Criminal Defense & Human Rights',
+    experience_years: 15,
+    bio: 'Experienced defense attorney focusing on civil liberties, constitutional rights under arrest, and fair trial procedures.',
+    rating: 4.90,
+    is_available: false,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'l4',
+    name: 'Advocate Deepa Karki',
+    email: 'deepa.karki@nyayafocus.org.np',
+    phone: '+977-9818475839',
+    specialization: 'Family Law & Gender Rights',
+    experience_years: 10,
+    bio: 'Activist and legal practitioner specializing in gender justice, family law reforms, domestic disputes, and rights protections under the Constitution.',
+    rating: 4.85,
+    is_available: true,
+    created_at: new Date().toISOString()
+  }
+];
+
+const getLocalPosts = (): FeedPost[] => {
+  if (typeof window === 'undefined') return [];
+  const local = localStorage.getItem('nyaya_mitra_posts');
+  if (!local) {
+    localStorage.setItem('nyaya_mitra_posts', JSON.stringify(DEFAULT_POSTS));
+    return DEFAULT_POSTS;
+  }
+  try {
+    return JSON.parse(local);
+  } catch {
+    return DEFAULT_POSTS;
+  }
+};
+
+const saveLocalPosts = (posts: FeedPost[]) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('nyaya_mitra_posts', JSON.stringify(posts));
+  }
+};
+
+const getLocalComments = (postId: string): PostComment[] => {
+  if (typeof window === 'undefined') return [];
+  const local = localStorage.getItem(`nyaya_mitra_comments_${postId}`);
+  if (!local) {
+    const defaults = DEFAULT_COMMENTS[postId] || [];
+    localStorage.setItem(`nyaya_mitra_comments_${postId}`, JSON.stringify(defaults));
+    return defaults;
+  }
+  try {
+    return JSON.parse(local);
+  } catch {
+    return DEFAULT_COMMENTS[postId] || [];
+  }
+};
+
+
+
+
+// Database Operations Layer (Supabase only)
+export const dbService = {
+  // Admin Check
+  async checkAdminStatus(): Promise<{ isAuthenticated: boolean; isAdmin: boolean }> {
+    if (!supabase) {
+      return { isAuthenticated: false, isAdmin: false };
+    }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || !session.user) {
+        return { isAuthenticated: false, isAdmin: false };
+      }
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+      if (error || !profile) {
+        return { isAuthenticated: true, isAdmin: false };
+      }
+      return {
+        isAuthenticated: true,
+        isAdmin: profile.role === 'admin'
+      };
+    } catch (e) {
+      return { isAuthenticated: false, isAdmin: false };
+    }
+  },
+
+  // Profiles
+  async getProfile(userId: string): Promise<Profile | null> {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    if (error) return null;
+    return data;
+  },
+
+  // Cases
+  async getCases(userId: string): Promise<Case[]> {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    const { data, error } = await supabase
+      .from('cases')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) return [];
+    return data || [];
+  },
+
+  async getAllCases(): Promise<Case[]> {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    const { data, error } = await supabase
+      .from('cases')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) return [];
+    return data || [];
+  },
+
+  async getCaseById(caseId: string): Promise<Case | null> {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    const { data, error } = await supabase
+      .from('cases')
+      .select('*')
+      .eq('id', caseId)
+      .single();
+    if (error) return null;
+    return data;
+  },
+
+  async createCase(caseData: Partial<Case>): Promise<Case> {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    const payload = {
+      user_id: caseData.user_id || null,
+      title: caseData.title || 'Untitled Case',
+      description: caseData.description || '',
+      category: caseData.category || 'General',
+      anonymous: caseData.anonymous ?? false,
+      status: 'Submitted',
+      urgency: caseData.urgency || 'Low',
+      readiness_score: caseData.readiness_score || 20,
+      action_plan: caseData.action_plan || [],
+    };
+
+    const { data, error } = await supabase
+      .from('cases')
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw error;
+
+    // Log status in updates
+    await this.addCaseUpdate(data.id, 'Submitted', 'Incident reported securely via system dispatcher.');
+
+    return data;
+  },
+
+  async updateCaseStatus(caseId: string, status: Case['status']): Promise<Case | null> {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    const { data, error } = await supabase
+      .from('cases')
+      .update({ status })
+      .eq('id', caseId)
+      .select()
+      .single();
+    if (error) return null;
+
+    // Add timeline log update
+    await this.addCaseUpdate(caseId, status, `Timeline status modified to ${status}.`);
+
+    // Notify User
+    if (data.user_id) {
+      await this.createNotification(
+        data.user_id,
+        'Case Status Update',
+        `Your case "${data.title.slice(0, 20)}..." has progressed to "${status}".`
+      );
+    }
+
+    return data;
+  },
+
+  // Upload actual file to Supabase Storage (evidence-vault)
+  async uploadFileToStorage(caseId: string, file: File): Promise<string> {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${caseId}/${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+    
+    const { data, error } = await supabase.storage
+        .from('evidence-vault')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+    if (error) throw error;
+
+    const { data: publicUrlData } = supabase.storage
+      .from('evidence-vault')
+      .getPublicUrl(filePath);
+
+    return publicUrlData.publicUrl;
+  },
+
+  // Evidence
+  async getEvidenceForCase(caseId: string): Promise<Evidence[]> {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    const { data, error } = await supabase
+      .from('evidence')
+      .select('*')
+      .eq('case_id', caseId);
+    if (error) return [];
+    return data || [];
+  },
+
+  async uploadEvidence(caseId: string, fileName: string, fileType: string, fileSize: number, fileUrl: string): Promise<Evidence> {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    const { data, error } = await supabase
+      .from('evidence')
+      .insert({
+        case_id: caseId,
+        file_name: fileName,
+        file_type: fileType,
+        file_size: fileSize,
+        file_url: fileUrl,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+
+    // Adjust readiness score in Supabase
+    const caseObj = await this.getCaseById(caseId);
+    if (caseObj) {
+      const newScore = Math.min(100, caseObj.readiness_score + 15);
+      await supabase.from('cases').update({ readiness_score: newScore }).eq('id', caseId);
+    }
+
+    return data;
+  },
+
+  // Case Updates
+  async getCaseUpdates(caseId: string): Promise<CaseUpdate[]> {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    const { data, error } = await supabase
+      .from('case_updates')
+      .select('*')
+      .eq('case_id', caseId)
+      .order('created_at', { ascending: false });
+    if (error) return [];
+    return data || [];
+  },
+
+  async addCaseUpdate(caseId: string, status: string, note: string): Promise<CaseUpdate> {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    const { data, error } = await supabase
+      .from('case_updates')
+      .insert({
+        case_id: caseId,
+        status,
+        note
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  // Feed Posts
+  async getFeedPosts(includeFlagged = false): Promise<FeedPost[]> {
+    if (!supabase) return getLocalPosts();
+    try {
+      let query = supabase.from('feed_posts').select('*');
+      if (!includeFlagged) {
+        query = query.eq('flagged', false);
+      }
+      const { data, error } = await query.order('created_at', { ascending: false });
+      if (error || !data) {
+        return getLocalPosts();
+      }
+      return data.map(post => ({
+        ...post,
+        disagree_votes: post.disagree_votes || 0
+      }));
+    } catch (e) {
+      console.warn('Supabase query failed, falling back to local posts:', e);
+      return getLocalPosts();
+    }
+  },
+
+  async createFeedPost(title: string, content: string, authorName: string, category: string): Promise<FeedPost> {
+    const localPosts = getLocalPosts();
+    const newPost: FeedPost = {
+      id: Math.random().toString(36).substring(2, 9),
+      title,
+      content,
+      author_name: authorName,
+      likes: 0,
+      disagree_votes: 0,
+      category,
+      flagged: false,
+      created_at: new Date().toISOString()
+    };
+
+    if (!supabase) {
+      const updated = [newPost, ...localPosts];
+      saveLocalPosts(updated);
+      return newPost;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('feed_posts')
+        .insert({
+          title,
+          content,
+          author_name: authorName,
+          category,
+          likes: 0,
+          disagree_votes: 0,
+          flagged: false
+        })
+        .select()
+        .single();
+      
+      if (error || !data) {
+        throw new Error(error?.message || 'Failed to insert post');
+      }
+      return {
+        ...data,
+        disagree_votes: data.disagree_votes || 0
+      };
+    } catch (e) {
+      console.warn('Supabase insert failed, saving post locally:', e);
+      const updated = [newPost, ...localPosts];
+      saveLocalPosts(updated);
+      return newPost;
+    }
+  },
+
+  async likeFeedPost(postId: string): Promise<FeedPost | null> {
+    return this.voteFeedPost(postId, 'agree');
+  },
+
+  async voteFeedPost(postId: string, voteType: 'agree' | 'disagree'): Promise<FeedPost | null> {
+    const localPosts = getLocalPosts();
+    const postIdx = localPosts.findIndex(p => p.id === postId);
+    let updatedLocalPost: FeedPost | null = null;
+    
+    if (postIdx !== -1) {
+      const posts = [...localPosts];
+      const post = posts[postIdx];
+      if (voteType === 'agree') {
+        post.likes = (post.likes || 0) + 1;
+      } else {
+        post.disagree_votes = (post.disagree_votes || 0) + 1;
+      }
+      posts[postIdx] = post;
+      saveLocalPosts(posts);
+      updatedLocalPost = post;
+    }
+
+    if (!supabase) {
+      return updatedLocalPost;
+    }
+
+    try {
+      const { data: post, error: getError } = await supabase
+        .from('feed_posts')
+        .select('*')
+        .eq('id', postId)
+        .single();
+
+      if (getError || !post) {
+        return updatedLocalPost;
+      }
+
+      const updateData: any = {};
+      if (voteType === 'agree') {
+        updateData.likes = (post.likes || 0) + 1;
+      } else {
+        updateData.disagree_votes = (post.disagree_votes || 0) + 1;
+      }
+
+      const { data, error } = await supabase
+        .from('feed_posts')
+        .update(updateData)
+        .eq('id', postId)
+        .select()
+        .single();
+
+      if (error || !data) {
+        return updatedLocalPost;
+      }
+
+      return {
+        ...data,
+        disagree_votes: data.disagree_votes || 0
+      };
+    } catch (e) {
+      console.warn('Supabase vote failed, fallback to local post:', e);
+      return updatedLocalPost;
+    }
+  },
+
+  async adjustFeedPostVotes(postId: string, likesDiff: number, disagreeDiff: number): Promise<FeedPost | null> {
+    const localPosts = getLocalPosts();
+    const postIdx = localPosts.findIndex(p => p.id === postId);
+    let updatedLocalPost: FeedPost | null = null;
+    
+    if (postIdx !== -1) {
+      const posts = [...localPosts];
+      const post = posts[postIdx];
+      post.likes = Math.max(0, (post.likes || 0) + likesDiff);
+      post.disagree_votes = Math.max(0, (post.disagree_votes || 0) + disagreeDiff);
+      posts[postIdx] = post;
+      saveLocalPosts(posts);
+      updatedLocalPost = post;
+    }
+
+    if (!supabase) {
+      return updatedLocalPost;
+    }
+
+    try {
+      const { data: post, error: getError } = await supabase
+        .from('feed_posts')
+        .select('*')
+        .eq('id', postId)
+        .single();
+
+      if (getError || !post) {
+        return updatedLocalPost;
+      }
+
+      const { data, error } = await supabase
+        .from('feed_posts')
+        .update({
+          likes: Math.max(0, (post.likes || 0) + likesDiff),
+          disagree_votes: Math.max(0, (post.disagree_votes || 0) + disagreeDiff)
+        })
+        .eq('id', postId)
+        .select()
+        .single();
+
+      if (error || !data) {
+        return updatedLocalPost;
+      }
+
+      return {
+        ...data,
+        disagree_votes: data.disagree_votes || 0
+      };
+    } catch (e) {
+      console.warn('Supabase adjust votes failed, fallback to local post:', e);
+      return updatedLocalPost;
+    }
+  },
+
+  async flagFeedPost(postId: string, flagged: boolean): Promise<FeedPost | null> {
+    const localPosts = getLocalPosts();
+    const postIdx = localPosts.findIndex(p => p.id === postId);
+    let updatedLocalPost: FeedPost | null = null;
+    if (postIdx !== -1) {
+      const posts = [...localPosts];
+      posts[postIdx].flagged = flagged;
+      saveLocalPosts(posts);
+      updatedLocalPost = posts[postIdx];
+    }
+
+    if (!supabase) return updatedLocalPost;
+    try {
+      const { data, error } = await supabase
+        .from('feed_posts')
+        .update({ flagged })
+        .eq('id', postId)
+        .select()
+        .single();
+      if (error || !data) return updatedLocalPost;
+      return {
+        ...data,
+        disagree_votes: data.disagree_votes || 0
+      };
+    } catch (e) {
+      return updatedLocalPost;
+    }
+  },
+
+  async deleteFeedPost(postId: string): Promise<boolean> {
+    const localPosts = getLocalPosts();
+    const updated = localPosts.filter(p => p.id !== postId);
+    saveLocalPosts(updated);
+
+    if (!supabase) return true;
+    try {
+      const { error } = await supabase
+        .from('feed_posts')
+        .delete()
+        .eq('id', postId);
+      return !error;
+    } catch {
+      return true;
+    }
+  },
+
+  // Comments
+  async getPostComments(postId: string): Promise<PostComment[]> {
+    if (!supabase) return getLocalComments(postId);
+    try {
+      const { data, error } = await supabase
+        .from('post_comments')
+        .select('*')
+        .eq('post_id', postId)
+        .order('created_at', { ascending: true });
+      if (error || !data) {
+        return getLocalComments(postId);
+      }
+      return data;
+    } catch (e) {
+      console.warn('Supabase comment query failed, falling back to local:', e);
+      return getLocalComments(postId);
+    }
+  },
+
+  async createPostComment(postId: string, authorName: string, content: string): Promise<PostComment> {
+    const localComments = getLocalComments(postId);
+    const newComment: PostComment = {
+      id: Math.random().toString(36).substring(2, 9),
+      post_id: postId,
+      author_name: authorName,
+      content,
+      created_at: new Date().toISOString()
+    };
+
+    if (!supabase) {
+      const updated = [...localComments, newComment];
+      saveLocalComments(postId, updated);
+      return newComment;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('post_comments')
+        .insert({
+          post_id: postId,
+          author_name: authorName,
+          content
+        })
+        .select()
+        .single();
+
+      if (error || !data) {
+        throw new Error(error?.message || 'Failed to insert comment');
+      }
+      return data;
+    } catch (e) {
+      console.warn('Supabase comment insert failed, saving locally:', e);
+      const updated = [...localComments, newComment];
+      saveLocalComments(postId, updated);
+      return newComment;
+    }
+  },
+
+  // Lawyers
+  async getLawyers(): Promise<Lawyer[]> {
+    if (!supabase) return MOCK_LAWYERS;
+    try {
+      const { data, error } = await supabase
+        .from('lawyers')
+        .select('*')
+        .order('name', { ascending: true });
+      if (error || !data || data.length === 0) {
+        return MOCK_LAWYERS;
+      }
+      return data;
+    } catch (e) {
+      console.warn('Supabase lawyers query failed, falling back to mock lawyers:', e);
+      return MOCK_LAWYERS;
+    }
+  },
+
+  // Notifications
+  async getNotifications(userId: string): Promise<Notification[]> {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) return [];
+    return data || [];
+  },
+
+  async createNotification(userId: string, title: string, message: string): Promise<Notification> {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: userId,
+        title,
+        message,
+        read: false
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async markNotificationRead(notifId: string): Promise<boolean> {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('id', notifId);
+    return !error;
+  },
+
+  // Admin Notes
+  async getAdminNotes(caseId: string): Promise<AdminNote[]> {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    const { data, error } = await supabase
+      .from('admin_notes')
+      .select('*')
+      .eq('case_id', caseId)
+      .order('created_at', { ascending: false });
+    if (error) return [];
+    return data || [];
+  },
+
+  async addAdminNote(caseId: string, note: string): Promise<AdminNote> {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    const { data, error } = await supabase
+      .from('admin_notes')
+      .insert({
+        case_id: caseId,
+        note
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+};

@@ -1,0 +1,12 @@
+/node_modules
+/.next
+/.env.local
+.env.local
+/storage.sql
+/schema.sql
+/skill.node_modules
+/skills.node_modules
+/rag.node_modules
+/gemini.node_modules
+/supabase.node_modules
+/ai.node_modules
