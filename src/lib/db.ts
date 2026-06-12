@@ -51,6 +51,9 @@ export interface FeedPost {
   category: string;
   flagged: boolean;
   created_at: string;
+  anonymous: boolean;
+  anonymous_id?: string;
+  images?: string[];
 }
 
 export interface PostComment {
@@ -152,7 +155,10 @@ const DEFAULT_POSTS: FeedPost[] = [
     disagree_votes: 1,
     category: 'Constitutional Remedies',
     flagged: false,
-    created_at: new Date(Date.now() - 3600000 * 24 * 3).toISOString() // 3 days ago
+    created_at: new Date(Date.now() - 3600000 * 24 * 3).toISOString(), // 3 days ago
+    anonymous: false,
+    anonymous_id: '',
+    images: []
   },
   {
     id: 'mock-p2',
@@ -163,7 +169,10 @@ const DEFAULT_POSTS: FeedPost[] = [
     disagree_votes: 0,
     category: 'Fundamental Rights',
     flagged: false,
-    created_at: new Date(Date.now() - 3600000 * 12).toISOString() // 12 hours ago
+    created_at: new Date(Date.now() - 3600000 * 12).toISOString(), // 12 hours ago
+    anonymous: false,
+    anonymous_id: '',
+    images: []
   },
   {
     id: 'mock-p3',
@@ -174,7 +183,10 @@ const DEFAULT_POSTS: FeedPost[] = [
     disagree_votes: 2,
     category: 'Civil Rights',
     flagged: false,
-    created_at: new Date(Date.now() - 3600000 * 36).toISOString() // 1.5 days ago
+    created_at: new Date(Date.now() - 3600000 * 36).toISOString(), // 1.5 days ago
+    anonymous: false,
+    anonymous_id: '',
+    images: []
   }
 ];
 
@@ -285,8 +297,25 @@ const getLocalComments = (postId: string): PostComment[] => {
   }
 };
 
-
-
+function base64ToBlob(base64: string): Blob {
+  let contentType = 'image/jpeg';
+  let base64Data = base64;
+  if (base64.includes(';base64,')) {
+    const parts = base64.split(';base64,');
+    contentType = parts[0].split(':')[1];
+    base64Data = parts[1];
+  }
+  
+  const raw = typeof window !== 'undefined' 
+    ? window.atob(base64Data) 
+    : Buffer.from(base64Data, 'base64').toString('binary');
+  const rawLength = raw.length;
+  const uInt8Array = new Uint8Array(rawLength);
+  for (let i = 0; i < rawLength; ++i) {
+    uInt8Array[i] = raw.charCodeAt(i);
+  }
+  return new Blob([uInt8Array], { type: contentType });
+}
 
 // Database Operations Layer (Supabase only)
 export const dbService = {
@@ -513,7 +542,10 @@ export const dbService = {
       }
       return data.map(post => ({
         ...post,
-        disagree_votes: post.disagree_votes || 0
+        disagree_votes: post.disagree_votes || 0,
+        anonymous: post.anonymous || false,
+        anonymous_id: post.anonymous_id || '',
+        images: post.images || []
       }));
     } catch (e) {
       console.warn('Supabase query failed, falling back to local posts:', e);
@@ -521,10 +553,19 @@ export const dbService = {
     }
   },
 
-  async createFeedPost(title: string, content: string, authorName: string, category: string): Promise<FeedPost> {
+  async createFeedPost(
+    title: string, 
+    content: string, 
+    authorName: string, 
+    category: string,
+    anonymous = false,
+    anonymousId = '',
+    images: string[] = []
+  ): Promise<FeedPost> {
     const localPosts = getLocalPosts();
+    const newPostId = Math.random().toString(36).substring(2, 9);
     const newPost: FeedPost = {
-      id: Math.random().toString(36).substring(2, 9),
+      id: newPostId,
       title,
       content,
       author_name: authorName,
@@ -532,7 +573,10 @@ export const dbService = {
       disagree_votes: 0,
       category,
       flagged: false,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      anonymous,
+      anonymous_id: anonymousId,
+      images
     };
 
     if (!supabase) {
@@ -542,6 +586,40 @@ export const dbService = {
     }
 
     try {
+      // Upload images to Supabase Storage and get their public URLs
+      const imageUrls: string[] = [];
+      for (let i = 0; i < images.length; i++) {
+        const base64Str = images[i];
+        if (base64Str.startsWith('data:image/')) {
+          const blob = base64ToBlob(base64Str);
+          const fileExt = blob.type.split('/')[1] || 'jpg';
+          const filePath = `post-${newPostId}-${i}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('community-posts')
+            .upload(filePath, blob, {
+              contentType: blob.type,
+              cacheControl: '3600',
+              upsert: false
+            });
+          
+          if (uploadError) {
+            console.error('Error uploading community post image:', uploadError);
+            throw uploadError;
+          }
+          
+          const { data: publicUrlData } = supabase.storage
+            .from('community-posts')
+            .getPublicUrl(filePath);
+          
+          if (publicUrlData?.publicUrl) {
+            imageUrls.push(publicUrlData.publicUrl);
+          }
+        } else {
+          imageUrls.push(base64Str);
+        }
+      }
+
       const { data, error } = await supabase
         .from('feed_posts')
         .insert({
@@ -551,7 +629,10 @@ export const dbService = {
           category,
           likes: 0,
           disagree_votes: 0,
-          flagged: false
+          flagged: false,
+          anonymous,
+          anonymous_id: anonymousId,
+          images: imageUrls
         })
         .select()
         .single();
@@ -561,7 +642,10 @@ export const dbService = {
       }
       return {
         ...data,
-        disagree_votes: data.disagree_votes || 0
+        disagree_votes: data.disagree_votes || 0,
+        anonymous: data.anonymous || false,
+        anonymous_id: data.anonymous_id || '',
+        images: data.images || []
       };
     } catch (e) {
       console.warn('Supabase insert failed, saving post locally:', e);

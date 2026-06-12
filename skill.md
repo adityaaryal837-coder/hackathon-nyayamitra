@@ -13,3 +13,4 @@ make the all page route work properly
 
 For theme toggle button white  
 Make the div also white to look good
+dont make any changes on the backend side, now i want to improve only the frontend
