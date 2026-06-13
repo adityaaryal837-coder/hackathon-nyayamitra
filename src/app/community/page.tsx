@@ -314,6 +314,22 @@ export default function CommunityPage() {
     }
   };
 
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm('Are you sure you want to delete your post? This cannot be undone.')) return;
+    try {
+      await dbService.deleteFeedPost(postId);
+      // Remove locally from state
+      setPosts(prev => prev.filter(p => p.id !== postId));
+      setCommentsMap(prev => {
+        const next = { ...prev };
+        delete next[postId];
+        return next;
+      });
+    } catch (e) {
+      console.error('Failed to delete post:', e);
+    }
+  };
+
   // Sort and Filter Logic
   const processedPosts = React.useMemo(() => {
     let result = [...posts];
@@ -625,12 +641,25 @@ export default function CommunityPage() {
                             </div>
                           </div>
 
-                          {/* Share Toast notifier */}
-                          {shareToast === post.id && (
-                            <span className="text-[9px] font-bold text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-md animate-fade-in absolute right-12 top-4">
-                              Link copied!
-                            </span>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {/* Share Toast notifier */}
+                            {shareToast === post.id && (
+                              <span className="text-[9px] font-bold text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-md animate-fade-in">
+                                Link copied!
+                              </span>
+                            )}
+
+                            {/* Delete button — only visible to the post's author */}
+                            {!post.anonymous && user?.full_name === post.author_name && (
+                              <button
+                                onClick={() => handleDeletePost(post.id)}
+                                title="Delete your post"
+                                className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors active:scale-95"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         {/* Title */}

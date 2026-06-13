@@ -64,6 +64,7 @@
 
 html {
   scroll-behavior: smooth;
+  font-size: 16.8px; /* Slightly bigger text globally (default is usually 16px) */
 }
 
 body {

@@ -6,15 +6,18 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   Scale, LayoutDashboard, MessageSquareCode, FileWarning, 
   Compass, User, ShieldAlert, Gavel, Radio, LogOut, 
-  ChevronLeft, ChevronRight, Users, Briefcase
+  ChevronLeft, ChevronRight, Users, Briefcase, Settings, Moon, Sun, Globe
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { useLanguage } from '@/lib/LanguageContext';
 
 const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
+  const { language, setLanguage } = useLanguage();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
   useEffect(() => {
@@ -168,6 +171,63 @@ const Sidebar: React.FC = () => {
       {/* Bottom Actions */}
       <div className="p-4 border-t border-legal-gold/10 bg-legal-navy-dark/20">
         {/* Theme and Home Page shortcuts removed per user preferences */}
+
+        {/* Settings Dropdown Button */}
+        <div className="relative mb-2.5">
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className={`flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-legal-gold/5 transition-all duration-300 group w-full
+              ${showSettings ? 'bg-legal-gold/10 text-legal-gold' : 'text-legal-bone/80'}`}
+          >
+            <Settings className={`h-5 w-5 flex-shrink-0 transition-colors ${showSettings ? 'text-legal-gold' : 'text-legal-bone/60 group-hover:text-legal-gold'}`} />
+            {!isCollapsed && (
+              <span className="text-sm font-semibold tracking-wide font-sans">Settings</span>
+            )}
+            {isCollapsed && (
+              <div className="absolute left-full ml-4 px-3 py-1.5 bg-legal-navy-dark border border-legal-gold/20 rounded-md text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none shadow-lg z-50 text-legal-bone">
+                Settings
+              </div>
+            )}
+          </button>
+          
+          {/* Settings Menu Popup */}
+          {showSettings && (
+            <div className={`absolute bottom-full left-0 mb-2 w-56 bg-legal-navy dark:bg-[#0c1827] border border-legal-gold/20 rounded-xl shadow-2xl overflow-hidden z-50 animate-fade-in ${isCollapsed ? 'ml-16' : ''}`}>
+              <div className="p-3 space-y-3">
+                {/* Theme Toggle */}
+                <button
+                  onClick={toggleTheme}
+                  className="w-full flex items-center justify-between p-2.5 hover:bg-legal-gold/10 rounded-lg text-legal-bone/90 hover:text-legal-gold transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    {theme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                    <span className="text-xs font-bold font-sans">Theme</span>
+                  </div>
+                  <span className="text-[10px] uppercase font-bold text-legal-gold/80 bg-legal-gold/10 px-2 py-0.5 rounded">
+                    {theme}
+                  </span>
+                </button>
+                
+                {/* Language Toggle */}
+                <button
+                  onClick={() => {
+                    setLanguage(language === 'en' ? 'ne' : 'en');
+                    setShowSettings(false); // Optionally close after selecting language
+                  }}
+                  className="w-full flex items-center justify-between p-2.5 hover:bg-legal-gold/10 rounded-lg text-legal-bone/90 hover:text-legal-gold transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Globe className="h-4 w-4" />
+                    <span className="text-xs font-bold font-sans">Language</span>
+                  </div>
+                  <span className="text-[10px] uppercase font-bold text-legal-gold/80 bg-legal-gold/10 px-2 py-0.5 rounded">
+                    {language === 'en' ? 'EN' : 'NE'}
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Clickable User Profile Settings shortcut */}
         <Link

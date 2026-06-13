@@ -3,12 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
-import { 
+import {
   dbService, Case, Evidence, CaseUpdate, AdminNote
 } from '@/lib/db';
 import { useAuth } from '@/lib/auth';
-import { 
-  Compass, FileText, CheckCircle2, Clock, Calendar, 
+import {
+  Compass, FileText, CheckCircle2, Clock, Calendar,
   HelpCircle, UserCheck, Search, ShieldAlert, Award, FileWarning, AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
@@ -23,7 +23,7 @@ export default function CaseTracking() {
   const [evidenceList, setEvidenceList] = useState<Evidence[]>([]);
   const [updates, setUpdates] = useState<CaseUpdate[]>([]);
   const [adminNotes, setAdminNotes] = useState<AdminNote[]>([]);
-  
+
   const [loading, setLoading] = useState(true);
 
   // Status mapping to define timelines
@@ -31,7 +31,7 @@ export default function CaseTracking() {
     { name: 'Submitted', desc: 'Case received', icon: FileWarning },
     { name: 'Under Review', desc: 'Admin reviewing details', icon: Search },
     { name: 'Evidence Review', desc: 'Evidentiary documents audit', icon: Clock },
-    { name: 'Assigned', desc: 'Assigned to panel advocate', icon: UserCheck },
+    { name: 'Assigned', desc: 'Assigned to concerned staff ', icon: UserCheck },
     { name: 'Resolved', desc: 'Dispute closed', icon: Award },
   ] as const;
 
@@ -124,8 +124,8 @@ export default function CaseTracking() {
                     key={c.id}
                     onClick={() => handleSelectCase(c)}
                     className={`w-full text-left p-4 rounded-xl border transition-all duration-200
-                      ${isSelected 
-                        ? 'bg-legal-gold/15 border-legal-gold shadow-sm' 
+                      ${isSelected
+                        ? 'bg-legal-gold/15 border-legal-gold shadow-sm'
                         : 'bg-legal-bone dark:bg-legal-navy border-legal-gold/10 hover:border-legal-gold/30'
                       }`}
                   >
@@ -180,19 +180,19 @@ export default function CaseTracking() {
                   const Icon = p.icon;
 
                   return (
-                    <div 
+                    <div
                       key={p.name}
                       className={`flex flex-col items-center text-center p-3 rounded-xl border relative transition-all duration-500
-                        ${isCurrent 
-                          ? 'bg-legal-gold/15 border-legal-gold scale-105 shadow-sm shadow-legal-gold/10' 
-                          : isCompleted 
-                          ? 'bg-legal-navy/10 dark:bg-legal-bone/5 border-legal-gold/40 opacity-90' 
-                          : 'bg-transparent border-legal-gold/10 opacity-40'
+                        ${isCurrent
+                          ? 'bg-legal-gold/15 border-legal-gold scale-105 shadow-sm shadow-legal-gold/10'
+                          : isCompleted
+                            ? 'bg-legal-navy/10 dark:bg-legal-bone/5 border-legal-gold/40 opacity-90'
+                            : 'bg-transparent border-legal-gold/10 opacity-40'
                         }`}
                     >
                       <div className={`h-9 w-9 rounded-full flex items-center justify-center mb-2.5 border
-                        ${isCurrent || isCompleted 
-                          ? 'bg-legal-gold text-legal-navy-dark border-transparent' 
+                        ${isCurrent || isCompleted
+                          ? 'bg-legal-gold text-legal-navy-dark border-transparent'
                           : 'bg-transparent text-legal-navy/55 dark:text-legal-bone/55 border-legal-gold/30'
                         }`}
                       >
@@ -228,7 +228,7 @@ export default function CaseTracking() {
                   ) : (
                     <div className="space-y-2.5">
                       {evidenceList.map((ev) => (
-                        <div 
+                        <div
                           key={ev.id}
                           className="flex items-center justify-between p-3 rounded-xl bg-legal-navy/5 dark:bg-legal-bone/5 border border-legal-gold/10"
                         >
@@ -241,7 +241,7 @@ export default function CaseTracking() {
                               </span>
                             </div>
                           </div>
-                          
+
                           <a
                             href={ev.file_url}
                             download={ev.file_name}
@@ -274,7 +274,7 @@ export default function CaseTracking() {
                         <div key={update.id} className="relative space-y-1">
                           {/* Dot marker */}
                           <div className="absolute -left-[21.5px] top-1 h-3.5 w-3.5 rounded-full border-2 border-legal-gold bg-legal-navy dark:bg-legal-navy-dark" />
-                          
+
                           <div className="flex justify-between items-center text-[10px] font-sans font-semibold text-legal-navy/50 dark:text-legal-bone/50">
                             <span>Status: {update.status}</span>
                             <span>{new Date(update.created_at).toLocaleDateString()}</span>
