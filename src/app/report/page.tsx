@@ -10,7 +10,6 @@ import {
   FileWarning, Upload, ShieldAlert, AlertCircle, EyeOff, 
   HelpCircle, CheckCircle2, FileText, Trash2, ShieldCheck, Sparkles, Clock
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 
 interface FileUploadLog {
   name: string;
@@ -20,6 +19,103 @@ interface FileUploadLog {
   rawFile?: File;
 }
 
+const CATEGORY_GROUPS = [
+  {
+    label: 'Existing Categories',
+    options: [
+      'Constitutional Rights',
+      'Labor Law',
+      'Property Law',
+      'Criminal Law',
+      'Civil Liberties',
+    ],
+  },
+  {
+    label: 'Social Issues',
+    options: [
+      'Gender Inequality',
+      'Domestic Violence',
+      'Child Abuse',
+      'Human Trafficking',
+      'Sexual Harassment',
+      'Workplace Harassment',
+      'Discrimination',
+      'Elder Abuse',
+      'Disability Rights',
+      'Cyberbullying',
+    ],
+  },
+  {
+    label: 'Cyber & Digital Issues',
+    options: [
+      'Online Fraud',
+      'Identity Theft',
+      'Privacy Violations',
+      'Cyber Crime',
+      'Data Misuse',
+      'Social Media Abuse',
+    ],
+  },
+  {
+    label: 'Public & Administrative Issues',
+    options: [
+      'Corruption',
+      'Bribery',
+      'Abuse of Authority',
+      'Government Service Complaints',
+      'Public Safety Concerns',
+    ],
+  },
+  {
+    label: 'Economic Issues',
+    options: [
+      'Consumer Rights',
+      'Financial Fraud',
+      'Labor Exploitation',
+      'Wage Disputes',
+    ],
+  },
+  {
+    label: 'Environmental Issues',
+    options: [
+      'Illegal Waste Disposal',
+      'Pollution',
+      'Deforestation',
+      'Water Contamination',
+    ],
+  },
+  {
+    label: 'Educational Issues',
+    options: [
+      'Bullying',
+      'Ragging',
+      'Unfair Treatment',
+      'Academic Harassment',
+    ],
+  },
+  {
+    label: 'Healthcare Issues',
+    options: [
+      'Medical Negligence',
+      'Unethical Practices',
+      'Healthcare Accessibility Problems',
+    ],
+  },
+  {
+    label: 'Legal & Human Rights',
+    options: [
+      'Human Rights Violations',
+      'Property Disputes',
+      'Threats and Intimidation',
+      'Violence and Assault',
+    ],
+  },
+  {
+    label: 'Other',
+    options: ['Miscellaneous', 'Other'],
+  },
+];
+
 export default function ReportIncident() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
@@ -27,15 +123,16 @@ export default function ReportIncident() {
   // Form states
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('Labor Law');
+  const [category, setCategory] = useState('Constitutional Rights');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<FileUploadLog[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  const categories = ['Constitutional Rights', 'Labor Law', 'Property Law', 'Criminal Law', 'Civil Liberties'];
+  const MAX_DESC_CHARS = 3000;
 
   useEffect(() => {
     // Anonymous reporting is allowed without login
@@ -121,13 +218,8 @@ export default function ReportIncident() {
         }
       }
 
-      // 5. Trigger Confetti
-      confetti({
-        particleCount: 150,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#C5A880', '#0D1B2A', '#3F72AF']
-      });
+      // 5. Show professional success notification (no confetti)
+      setShowSuccess(true);
 
       // 6. Notify user of receipt
       if (user && !isAnonymous) {
@@ -141,7 +233,7 @@ export default function ReportIncident() {
       // Redirect to cases page
       setTimeout(() => {
         router.push('/cases');
-      }, 1500);
+      }, 2500);
 
     } catch (err) {
       console.error(err);
@@ -157,23 +249,40 @@ export default function ReportIncident() {
       <main className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8">
         {/* Header Section */}
         <div className="border-b border-legal-gold/15 pb-6">
-          <h1 className="font-serif text-3xl font-extrabold text-legal-navy dark:text-legal-bone-light flex items-center gap-2.5">
-            <FileWarning className="h-7 w-7 text-legal-gold" />
+          <h1 className="text-heading text-3xl font-bold text-legal-navy dark:text-legal-bone-light flex items-center gap-2.5">
+            <FileWarning className="h-7 w-7 text-legal-gold flex-shrink-0" aria-hidden="true" />
             Report Incident
           </h1>
-          <p className="text-xs font-sans text-legal-navy/60 dark:text-legal-bone/60 mt-1">
-            File human rights violations, wage theft claims, or lease disputes. Assured encryption.
+          <p className="text-body text-sm text-legal-navy/60 dark:text-legal-bone/60 mt-2">
+            File human rights violations, wage theft claims, or lease disputes. All submissions are encrypted and handled confidentially.
           </p>
         </div>
 
+        {/* Professional Success Banner */}
+        {showSuccess && (
+          <div className="success-toast max-w-2xl" role="status" aria-live="polite">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div>
+              <p className="font-semibold text-sm font-inter">Complaint Submitted Successfully</p>
+              <p className="text-xs mt-0.5 opacity-80 font-inter leading-relaxed">
+                Your complaint has been submitted successfully. We will process it as soon as possible. You will be redirected to case tracking shortly.
+              </p>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="glass-panel-light dark:glass-panel-dark rounded-2xl border border-legal-gold/15 p-12 text-center space-y-6 max-w-2xl mx-auto py-24 shadow-gold-glow">
-            <Sparkles className="h-12 w-12 text-legal-gold animate-spin mx-auto" />
+            <div className="relative mx-auto w-14 h-14">
+              <div className="absolute inset-0 rounded-full border-2 border-legal-gold/20" />
+              <div className="absolute inset-0 rounded-full border-t-2 border-legal-gold animate-spin" />
+              <Sparkles className="absolute inset-0 m-auto h-6 w-6 text-legal-gold" aria-hidden="true" />
+            </div>
             <div className="space-y-2">
-              <h3 className="font-serif text-xl font-bold text-legal-navy dark:text-legal-bone-light">
+              <h3 className="text-heading text-xl font-bold text-legal-navy dark:text-legal-bone-light">
                 Consulting Nyaya Mitra AI...
               </h3>
-              <p className="text-xs text-legal-navy/60 dark:text-legal-bone/60 max-w-sm mx-auto font-sans">
+              <p className="text-body text-xs text-legal-navy/60 dark:text-legal-bone/60 max-w-sm mx-auto">
                 Our models are auditing your report details, generating urgency priority levels, calculating case readiness metrics, and drafting step-by-step action plans.
               </p>
             </div>
@@ -183,108 +292,164 @@ export default function ReportIncident() {
             {/* Main Form */}
             <div className="lg:col-span-2">
               <div className="glass-panel-light dark:glass-panel-dark p-6 sm:p-8 rounded-2xl border border-legal-gold/15 shadow-glass">
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-7" noValidate>
                   {errorMsg && (
-                    <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-semibold rounded-xl flex items-center gap-2">
-                      <AlertCircle className="h-4.5 w-4.5 flex-shrink-0" />
+                    <div 
+                      className="p-3.5 bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-sm font-medium rounded-xl flex items-start gap-2.5"
+                      role="alert"
+                      aria-live="assertive"
+                    >
+                      <AlertCircle className="h-4.5 w-4.5 flex-shrink-0 mt-0.5" aria-hidden="true" />
                       {errorMsg}
                     </div>
                   )}
 
                   {/* Title */}
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold font-sans uppercase tracking-wider text-legal-gold">
-                      Incident Title
+                  <div className="space-y-2">
+                    <label 
+                      htmlFor="incident-title"
+                      className="text-label block text-legal-gold"
+                    >
+                      Incident Title <span className="text-red-500" aria-label="required">*</span>
                     </label>
                     <input
+                      id="incident-title"
                       type="text"
                       placeholder="e.g. Missing wage payments for April 2026 at Zenith IT"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-legal-gold/20 bg-legal-bone-light dark:bg-legal-navy-dark text-sm focus:outline-none focus:border-legal-gold text-legal-navy dark:text-legal-bone"
+                      className="form-input"
                       required
+                      aria-required="true"
+                      aria-describedby="title-hint"
                     />
+                    <p id="title-hint" className="text-caption text-legal-navy/40 dark:text-legal-bone/40">
+                      Keep it concise and specific to the incident.
+                    </p>
                   </div>
 
                   {/* Category */}
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold font-sans uppercase tracking-wider text-legal-gold">
-                      Incident Category
+                  <div className="space-y-2">
+                    <label 
+                      htmlFor="incident-category"
+                      className="text-label block text-legal-gold"
+                    >
+                      Incident Category <span className="text-red-500" aria-label="required">*</span>
                     </label>
                     <select
+                      id="incident-category"
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-legal-gold/20 bg-legal-bone-light dark:bg-legal-navy-dark text-sm focus:outline-none focus:border-legal-gold text-legal-navy dark:text-legal-bone"
+                      className="form-select"
+                      aria-required="true"
                     >
-                      {categories.map((cat) => (
-                        <option key={cat} value={cat} className="text-black bg-white">{cat}</option>
+                      {CATEGORY_GROUPS.map((group) => (
+                        <optgroup key={group.label} label={group.label}>
+                          {group.options.map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </optgroup>
                       ))}
                     </select>
+                    <p className="text-caption text-legal-navy/40 dark:text-legal-bone/40">
+                      Select the category that best describes your complaint.
+                    </p>
                   </div>
 
                   {/* Description */}
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold font-sans uppercase tracking-wider text-legal-gold">
-                      Detailed Testimony / Facts
+                  <div className="space-y-2">
+                    <label 
+                      htmlFor="incident-description"
+                      className="text-label block text-legal-gold"
+                    >
+                      Detailed Testimony / Facts <span className="text-red-500" aria-label="required">*</span>
                     </label>
                     <textarea
+                      id="incident-description"
                       placeholder="Include names, exact timelines, location details, amounts due, and context. The AI legal analyzer evaluates completeness."
                       value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      rows={8}
-                      className="w-full px-4 py-2.5 rounded-xl border border-legal-gold/20 bg-legal-bone-light dark:bg-legal-navy-dark text-sm focus:outline-none focus:border-legal-gold text-legal-navy dark:text-legal-bone leading-relaxed"
+                      onChange={(e) => setDescription(e.target.value.slice(0, MAX_DESC_CHARS))}
+                      rows={9}
+                      className="form-input resize-none"
                       required
+                      aria-required="true"
+                      aria-describedby="desc-count desc-hint"
                     />
+                    <div className="flex justify-between items-center">
+                      <p id="desc-hint" className="text-caption text-legal-navy/40 dark:text-legal-bone/40">
+                        More detail improves your AI readiness score.
+                      </p>
+                      <p 
+                        id="desc-count" 
+                        className={`text-caption tabular-nums ${description.length >= MAX_DESC_CHARS ? 'text-red-500' : 'text-legal-navy/40 dark:text-legal-bone/40'}`}
+                        aria-label={`${description.length} of ${MAX_DESC_CHARS} characters used`}
+                      >
+                        {description.length}/{MAX_DESC_CHARS}
+                      </p>
+                    </div>
                   </div>
 
                   {/* Evidence uploads */}
                   <div className="space-y-3">
-                    <label className="block text-xs font-bold font-sans uppercase tracking-wider text-legal-gold">
-                      Attach Evidence (Contracts, Receipts, Bank Statements, Chats)
+                    <label className="text-label block text-legal-gold">
+                      Attach Evidence
+                      <span className="ml-2 text-[10px] font-normal normal-case tracking-normal text-legal-navy/40 dark:text-legal-bone/40">(Optional — Contracts, Receipts, Bank Statements, Chats)</span>
                     </label>
                     
                     {/* Drag Zone */}
                     <div 
                       onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-legal-gold/30 hover:border-legal-gold/60 rounded-xl p-8 text-center cursor-pointer bg-legal-navy/5 hover:bg-legal-gold/5 transition-all flex flex-col items-center justify-center gap-2 group"
+                      onKeyDown={(e) => e.key === 'Enter' || e.key === ' ' ? fileInputRef.current?.click() : null}
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Click to upload evidence files"
+                      className="border-2 border-dashed border-legal-gold/25 hover:border-legal-gold/55 rounded-xl p-8 text-center cursor-pointer bg-legal-navy/3 hover:bg-legal-gold/4 transition-all duration-200 flex flex-col items-center justify-center gap-2.5 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-legal-gold/40"
                     >
-                      <Upload className="h-8 w-8 text-legal-gold group-hover:scale-110 transition-transform" />
-                      <span className="text-xs font-bold text-legal-navy/80 dark:text-legal-bone font-sans">
+                      <div className="p-3 rounded-xl bg-legal-gold/10 group-hover:bg-legal-gold/15 transition-colors">
+                        <Upload className="h-6 w-6 text-legal-gold" aria-hidden="true" />
+                      </div>
+                      <span className="text-sm font-semibold text-legal-navy/80 dark:text-legal-bone font-inter">
                         Click to select files
                       </span>
-                      <span className="text-[10px] text-legal-navy/40 dark:text-legal-bone/40 font-semibold font-sans">
-                        PDF, PNG, JPG, or DOCX (Max 10MB per file)
+                      <span className="text-caption text-legal-navy/40 dark:text-legal-bone/40">
+                        PDF, PNG, JPG, or DOCX — Max 10MB per file
                       </span>
                       <input
                         type="file"
                         ref={fileInputRef}
                         onChange={handleFileChange}
                         multiple
+                        accept=".pdf,.png,.jpg,.jpeg,.docx"
                         className="hidden"
+                        aria-hidden="true"
                       />
                     </div>
 
                     {/* Files List */}
                     {uploadedFiles.length > 0 && (
-                      <div className="space-y-2 pt-2">
+                      <div className="space-y-2 pt-1" role="list" aria-label="Attached files">
                         {uploadedFiles.map((file, idx) => (
                           <div 
                             key={idx}
-                            className="flex items-center justify-between p-3 rounded-xl bg-legal-navy/10 dark:bg-legal-bone/5 border border-legal-gold/15"
+                            role="listitem"
+                            className="flex items-center justify-between p-3 rounded-xl bg-legal-navy/6 dark:bg-legal-bone/5 border border-legal-gold/12 hover:border-legal-gold/25 transition-colors"
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <FileText className="h-4.5 w-4.5 text-legal-gold flex-shrink-0" />
+                              <div className="p-1.5 rounded-lg bg-legal-gold/10 flex-shrink-0">
+                                <FileText className="h-4 w-4 text-legal-gold" aria-hidden="true" />
+                              </div>
                               <div className="truncate">
-                                <span className="text-xs font-semibold block truncate text-legal-navy dark:text-legal-bone-light">{file.name}</span>
-                                <span className="text-[9px] text-legal-navy/40 dark:text-legal-bone/40 block">{(file.size / 1024).toFixed(1)} KB</span>
+                                <span className="text-sm font-medium block truncate text-legal-navy dark:text-legal-bone-light font-inter">{file.name}</span>
+                                <span className="text-caption text-legal-navy/40 dark:text-legal-bone/40 block">{(file.size / 1024).toFixed(1)} KB</span>
                               </div>
                             </div>
                             <button
                               type="button"
                               onClick={() => handleRemoveFile(idx)}
-                              className="p-1 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors"
+                              aria-label={`Remove ${file.name}`}
+                              className="p-1.5 rounded-lg text-red-400 hover:text-red-500 hover:bg-red-500/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/40"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4" aria-hidden="true" />
                             </button>
                           </div>
                         ))}
@@ -293,18 +458,18 @@ export default function ReportIncident() {
                   </div>
 
                   {/* Submission triggers */}
-                  <div className="pt-6 border-t border-legal-gold/10 flex flex-col sm:flex-row justify-between items-center gap-4">
+                  <div className="pt-6 border-t border-legal-gold/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5">
                     {/* Anonymous Toggle */}
-                    <div className="flex items-center justify-between w-full sm:w-auto gap-4">
-                      <div className="flex items-center gap-2.5">
-                        <div className="p-2 bg-legal-navy/10 dark:bg-legal-bone/10 rounded-xl text-legal-gold border border-legal-gold/25">
-                          <EyeOff className="h-4 w-4" />
+                    <div className="flex items-center justify-between w-full sm:w-auto gap-5">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-legal-navy/8 dark:bg-legal-bone/10 rounded-xl text-legal-gold border border-legal-gold/20 flex-shrink-0">
+                          <EyeOff className="h-4 w-4" aria-hidden="true" />
                         </div>
                         <div className="text-left">
-                          <span className="text-xs font-bold font-sans uppercase tracking-wider text-legal-gold block">
+                          <span className="text-label text-legal-gold block">
                             File Anonymously
                           </span>
-                          <span className="text-[10px] text-legal-navy/40 dark:text-legal-bone/40 block font-semibold leading-none">
+                          <span className="text-caption text-legal-navy/40 dark:text-legal-bone/40 block mt-0.5">
                             Identity is fully scrubbed
                           </span>
                         </div>
@@ -312,18 +477,23 @@ export default function ReportIncident() {
                       
                       <button
                         type="button"
+                        role="switch"
+                        aria-checked={isAnonymous}
                         onClick={() => setIsAnonymous(!isAnonymous)}
-                        className={`w-12 h-6.5 rounded-full p-1 transition-all duration-300 relative
-                          ${isAnonymous ? 'bg-legal-gold' : 'bg-legal-navy-dark/30 dark:bg-legal-bone/20'}`}
+                        aria-label="Toggle anonymous filing"
+                        className={`relative w-12 h-6 rounded-full p-0.5 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-legal-gold/50 flex-shrink-0
+                          ${isAnonymous ? 'bg-legal-gold' : 'bg-legal-navy-dark/25 dark:bg-legal-bone/15'}`}
                       >
-                        <div className={`w-4.5 h-4.5 rounded-full bg-white shadow-md transform transition-all duration-300
-                          ${isAnonymous ? 'translate-x-5.5' : 'translate-x-0'}`} />
+                        <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-all duration-300
+                          ${isAnonymous ? 'translate-x-6' : 'translate-x-0'}`} 
+                        />
                       </button>
                     </div>
 
                     <button
                       type="submit"
-                      className="w-full sm:w-auto px-8 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-br from-legal-gold to-legal-gold-dark text-legal-navy-dark shadow-gold-glow hover:scale-102 transition-all"
+                      disabled={isLoading}
+                      className="w-full sm:w-auto px-8 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-br from-legal-gold to-legal-gold-dark text-legal-navy-dark shadow-gold-glow hover:shadow-lg hover:scale-[1.02] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-legal-gold/60 font-inter"
                     >
                       Analyze and File Case
                     </button>
@@ -335,41 +505,48 @@ export default function ReportIncident() {
             {/* Sidebar Guidelines */}
             <div className="space-y-6">
               <div className="glass-panel-light dark:glass-panel-dark p-6 rounded-2xl border border-legal-gold/15 space-y-4">
-                <h3 className="font-serif text-lg font-bold text-legal-navy dark:text-legal-bone-light flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-legal-gold" />
+                <h3 className="text-heading text-base text-legal-navy dark:text-legal-bone-light flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-legal-gold flex-shrink-0" aria-hidden="true" />
                   Security Guarantee
                 </h3>
-                <p className="text-xs text-legal-navy/70 dark:text-legal-bone/70 leading-relaxed font-sans font-medium">
-                  We hold privacy as a fundamental pillar of justice. By enabling **File Anonymously**, your case will be registered without your profile linkage, ensuring even system administrators cannot associate your user account with the report content.
+                <p className="text-body text-xs text-legal-navy/70 dark:text-legal-bone/70 leading-relaxed">
+                  We hold privacy as a fundamental pillar of justice. By enabling <strong className="text-legal-gold">File Anonymously</strong>, your case will be registered without your profile linkage, ensuring even system administrators cannot associate your user account with the report content.
                 </p>
               </div>
 
               <div className="glass-panel-light dark:glass-panel-dark p-6 rounded-2xl border border-legal-gold/15 space-y-4">
-                <h3 className="font-serif text-lg font-bold text-legal-navy dark:text-legal-bone-light flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-legal-gold" />
+                <h3 className="text-heading text-base text-legal-navy dark:text-legal-bone-light flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-legal-gold flex-shrink-0" aria-hidden="true" />
                   What Happens Next?
                 </h3>
                 
-                <ul className="space-y-3.5 font-sans">
-                  <li className="flex gap-2">
-                    <span className="text-[10px] font-bold h-4.5 w-4.5 rounded-full bg-legal-gold/15 border border-legal-gold/30 text-legal-gold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                    <span className="text-[11px] font-semibold text-legal-navy/70 dark:text-legal-bone/70 leading-relaxed">
-                      AI audits data and creates compliance readiness scores.
-                    </span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-[10px] font-bold h-4.5 w-4.5 rounded-full bg-legal-gold/15 border border-legal-gold/30 text-legal-gold flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
-                    <span className="text-[11px] font-semibold text-legal-navy/70 dark:text-legal-bone/70 leading-relaxed">
-                      The case timeline transitions to "Submitted" status.
-                    </span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-[10px] font-bold h-4.5 w-4.5 rounded-full bg-legal-gold/15 border border-legal-gold/30 text-legal-gold flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
-                    <span className="text-[11px] font-semibold text-legal-navy/70 dark:text-legal-bone/70 leading-relaxed">
-                      Panel administrators initiate legal document reviews and add notes.
-                    </span>
-                  </li>
-                </ul>
+                <ol className="space-y-4">
+                  {[
+                    'AI audits your report and creates compliance readiness scores.',
+                    'The case timeline transitions to "Submitted" status.',
+                    'Panel administrators initiate legal document reviews and add notes.',
+                  ].map((step, i) => (
+                    <li key={i} className="flex gap-3 items-start">
+                      <span className="text-caption font-bold h-5 w-5 rounded-full bg-legal-gold/12 border border-legal-gold/28 text-legal-gold flex items-center justify-center flex-shrink-0 mt-0.5">
+                        {i + 1}
+                      </span>
+                      <span className="text-body text-xs text-legal-navy/70 dark:text-legal-bone/70 leading-relaxed">
+                        {step}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              {/* Category Info Card */}
+              <div className="glass-panel-light dark:glass-panel-dark p-6 rounded-2xl border border-legal-gold/15 space-y-3">
+                <h3 className="text-heading text-base text-legal-navy dark:text-legal-bone-light flex items-center gap-2">
+                  <HelpCircle className="h-5 w-5 text-legal-gold flex-shrink-0" aria-hidden="true" />
+                  Not Sure Which Category?
+                </h3>
+                <p className="text-body text-xs text-legal-navy/70 dark:text-legal-bone/70 leading-relaxed">
+                  Select the category closest to your situation. Our AI will refine the classification during analysis. You can always update it afterward from your case tracker.
+                </p>
               </div>
             </div>
           </div>

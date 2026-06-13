@@ -6,16 +6,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   Scale, LayoutDashboard, MessageSquareCode, FileWarning, 
   Compass, User, ShieldAlert, Gavel, Radio, LogOut, 
-  ChevronLeft, ChevronRight, Users, Briefcase, Settings, Moon, Sun, Globe
+  ChevronLeft, ChevronRight, Users, Briefcase, Settings, Moon, Sun
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
-import { useLanguage } from '@/lib/LanguageContext';
 
 const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, signOut } = useAuth();
-  const { language, setLanguage } = useLanguage();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
@@ -193,36 +191,35 @@ const Sidebar: React.FC = () => {
           {/* Settings Menu Popup */}
           {showSettings && (
             <div className={`absolute bottom-full left-0 mb-2 w-56 bg-legal-navy dark:bg-[#0c1827] border border-legal-gold/20 rounded-xl shadow-2xl overflow-hidden z-50 animate-fade-in ${isCollapsed ? 'ml-16' : ''}`}>
-              <div className="p-3 space-y-3">
-                {/* Theme Toggle */}
+              <div className="p-3">
+                {/* Section Label */}
+                <p className="text-[9px] uppercase tracking-widest text-legal-gold/50 font-semibold font-sans px-2 pb-2">Appearance</p>
+
+                {/* Theme Toggle — modern pill style */}
                 <button
                   onClick={toggleTheme}
-                  className="w-full flex items-center justify-between p-2.5 hover:bg-legal-gold/10 rounded-lg text-legal-bone/90 hover:text-legal-gold transition-colors"
+                  aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                  className="w-full flex items-center justify-between p-2.5 hover:bg-legal-gold/10 rounded-lg text-legal-bone/90 hover:text-legal-gold transition-colors group"
                 >
                   <div className="flex items-center gap-3">
-                    {theme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                    <span className="text-xs font-bold font-sans">Theme</span>
+                    <div className="p-1.5 rounded-lg bg-legal-gold/10 group-hover:bg-legal-gold/15 transition-colors">
+                      {theme === 'dark' 
+                        ? <Moon className="h-3.5 w-3.5 text-legal-gold" aria-hidden="true" /> 
+                        : <Sun className="h-3.5 w-3.5 text-legal-gold" aria-hidden="true" />
+                      }
+                    </div>
+                    <span className="text-xs font-semibold font-sans">
+                      {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+                    </span>
                   </div>
-                  <span className="text-[10px] uppercase font-bold text-legal-gold/80 bg-legal-gold/10 px-2 py-0.5 rounded">
-                    {theme}
-                  </span>
-                </button>
-                
-                {/* Language Toggle */}
-                <button
-                  onClick={() => {
-                    setLanguage(language === 'en' ? 'ne' : 'en');
-                    setShowSettings(false); // Optionally close after selecting language
-                  }}
-                  className="w-full flex items-center justify-between p-2.5 hover:bg-legal-gold/10 rounded-lg text-legal-bone/90 hover:text-legal-gold transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <Globe className="h-4 w-4" />
-                    <span className="text-xs font-bold font-sans">Language</span>
+                  {/* Visual toggle pill */}
+                  <div className={`relative w-10 h-5 rounded-full transition-all duration-300 flex-shrink-0
+                    ${theme === 'dark' ? 'bg-legal-gold/80' : 'bg-legal-bone/30'}`}
+                  >
+                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300
+                      ${theme === 'dark' ? 'left-5' : 'left-0.5'}`}
+                    />
                   </div>
-                  <span className="text-[10px] uppercase font-bold text-legal-gold/80 bg-legal-gold/10 px-2 py-0.5 rounded">
-                    {language === 'en' ? 'EN' : 'NE'}
-                  </span>
                 </button>
               </div>
             </div>

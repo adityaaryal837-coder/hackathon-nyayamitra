@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* ─── Google Fonts ──────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@300;400;500;600;700&display=swap');
 
 /* ─── Design Tokens ─────────────────────────────────────────────────────────── */
 :root {
@@ -68,7 +68,7 @@ html {
 }
 
 body {
-  font-family: var(--font-fredoka), 'Fredoka', system-ui, sans-serif;
+  font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
   background: var(--surface-bg);
   color: var(--text-primary);
   min-height: 100vh;
@@ -76,6 +76,8 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+  line-height: 1.6;
 }
 
 /* Nepali content uses Noto Sans Devanagari */
@@ -169,7 +171,7 @@ body {
   border: none;
   border-radius: 14px;
   font-weight: 600;
-  font-family: var(--font-fredoka), 'Fredoka', sans-serif;
+  font-family: var(--font-inter), var(--font-poppins), var(--font-fredoka), 'Inter', sans-serif;
   letter-spacing: 0.02em;
   transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
   box-shadow: 0 4px 16px rgba(66,153,225,0.35);
@@ -308,4 +310,138 @@ body {
   height: 4px;
   border-radius: 2px;
   transition: width 0.4s ease, background-color 0.4s ease;
+}
+
+/* ─── Typography Utilities ──────────────────────────────────────────────────── */
+.font-inter {
+  font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
+}
+.font-poppins {
+  font-family: var(--font-poppins), 'Poppins', system-ui, sans-serif;
+}
+.font-fredoka {
+  font-family: var(--font-fredoka), 'Fredoka', system-ui, sans-serif;
+}
+
+.text-heading {
+  font-family: var(--font-poppins), 'Poppins', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.text-label {
+  font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.text-body {
+  font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
+  font-weight: 400;
+  line-height: 1.65;
+}
+.text-caption {
+  font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+/* ─── Professional Success Toast ────────────────────────────────────────────── */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.success-toast {
+  animation: fadeSlideIn 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1.5px solid rgba(16, 185, 129, 0.30);
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  color: #065f46;
+}
+.dark .success-toast {
+  background: rgba(16, 185, 129, 0.10);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: #6ee7b7;
+}
+
+/* ─── Form Enhancements ─────────────────────────────────────────────────────── */
+.form-input {
+  font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
+  background: rgba(255,255,255,0.92);
+  border: 1.5px solid rgba(190,227,248,0.5);
+  border-radius: 12px;
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  width: 100%;
+  color: #0B192C;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  outline: none;
+}
+.dark .form-input {
+  background: rgba(10,20,42,0.8);
+  border-color: rgba(66,153,225,0.2);
+  color: #EBF4FF;
+}
+.form-input:focus {
+  border-color: #D4AF37;
+  box-shadow: 0 0 0 3px rgba(212,175,55,0.12);
+}
+.form-input:focus-visible {
+  border-color: #D4AF37;
+  box-shadow: 0 0 0 3px rgba(212,175,55,0.20);
+}
+.form-input:hover:not(:focus) {
+  border-color: rgba(212,175,55,0.4);
+}
+
+.form-select {
+  font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
+  background: rgba(255,255,255,0.92);
+  border: 1.5px solid rgba(190,227,248,0.5);
+  border-radius: 12px;
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  width: 100%;
+  color: #0B192C;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23D4AF37' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 12px;
+  padding-right: 2.5rem;
+}
+.dark .form-select {
+  background-color: rgba(10,20,42,0.8);
+  border-color: rgba(66,153,225,0.2);
+  color: #EBF4FF;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23D4AF37' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+}
+.form-select:focus {
+  border-color: #D4AF37;
+  box-shadow: 0 0 0 3px rgba(212,175,55,0.12);
+}
+.form-select option {
+  background: #fff;
+  color: #0B192C;
+  font-weight: 500;
+}
+.dark .form-select option {
+  background: #0c1827;
+  color: #EBF4FF;
 }

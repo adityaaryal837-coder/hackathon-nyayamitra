@@ -6,14 +6,19 @@
     "dev": "next dev --hostname 0.0.0.0",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "ingest": "ts-node -O \"{\\\"module\\\": \\\"commonjs\\\"}\" src/ingest.ts",
+    "chat": "ts-node -O \"{\\\"module\\\": \\\"commonjs\\\"}\" src/chat.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.11.1",
     "@supabase/supabase-js": "^2.43.4",
     "canvas-confetti": "^1.9.3",
+    "dotenv": "^16.4.5",
     "lucide-react": "^0.379.0",
+    "mammoth": "^1.8.0",
     "next": "^14.2.3",
+    "pdf-parse": "^1.1.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "three": "^0.165.0"
@@ -21,12 +26,14 @@
   "devDependencies": {
     "@types/canvas-confetti": "^1.6.4",
     "@types/node": "^20.12.12",
+    "@types/pdf-parse": "^1.1.4",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@types/three": "^0.165.0",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",
+    "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   }
 }

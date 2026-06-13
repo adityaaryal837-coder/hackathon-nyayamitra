@@ -1,5 +1,8 @@
 /node_modules
 /.next
+.env
+/.env
+/.skill.md
 /.env.local
 .env.local
 /storage.sql
