@@ -144,19 +144,43 @@ function getFallbackReply(userMessage: string): string {
   const text = userMessage.toLowerCase();
 
   if (text.includes('hello') || text.includes('hi ') || text.includes('hey') || text.trim() === 'hi') {
-    return `Namaste! 🙏 I am **Nyaya Mitra AI**, your digital companion for the **Constitution of Nepal (2015)**.
+    return `Namaste! 🙏 I am **Nyaya Mitra AI**, your digital legal companion for Nepalese law.
 
 I can help you understand:
-- **Fundamental Rights** (Part 3, Articles 16–46)
+- **Fundamental Rights** (Constitution of Nepal 2015, Part 3, Articles 16–46)
+- **Cyber Law** — Electronic Transactions Act, 2063 BS
+- **Civil Law** — National Civil Code (Muluki Civil Code), 2074 BS
 - **State Structure** — Federal, Provincial, and Local Governments
-- **Directive Principles** (Part 4)
-- **Constitutional Bodies** (CIAA, Election Commission, etc.)
-- **Citizenship and Nationality** provisions
 - **Constitutional remedies** available to citizens
+- **Citizenship and Nationality** provisions
 
-Please ask me any question about the Constitution of Nepal, and I'll provide guidance with article references.
+Please ask me any question about Nepalese law, and I'll provide guidance with article/section references.
 
 *Note: For official legal proceedings, always consult a licensed advocate (Vakil).*`;
+  }
+
+  if (text.includes('cyber') || text.includes('cybercrime') || text.includes('electronic') || text.includes('hacking') || text.includes('digital') || text.includes('online fraud') || text.includes('internet')) {
+    return `**Cyber Law in Nepal — Electronic Transactions Act, 2063 BS**
+
+Nepal's primary cyber law is the **Electronic Transactions Act (ETA), 2063 BS (2008 AD)**. Here are key provisions:
+
+**Offences under ETA:**
+1. **Section 44** — Unauthorized access to computer systems (hacking) is a criminal offence
+2. **Section 45** — Damage to computer systems or data
+3. **Section 46** — Publication of illegal material in electronic form (including obscene content)
+4. **Section 47** — Breach of confidentiality of electronic records
+5. **Section 48** — Fraud using electronic means
+
+**Constitutional grounding:**
+- **Article 17(2)(d)** of the Constitution of Nepal guarantees freedom of expression, but also allows restrictions for national security and public morality.
+- **Article 28** guarantees the Right to Privacy, which is directly relevant to digital privacy violations.
+
+**What to do if you're a cyber crime victim:**
+1. Report to the **Nepal Police Cyber Bureau** — cybercrime.police.gov.np
+2. Preserve all digital evidence (screenshots, URLs, email headers)
+3. File a complaint at your local Police Office under ETA, 2063 BS
+
+*For official legal proceedings, consult a licensed advocate (Vakil).*`;
   }
 
   if (text.includes('fundamental right') || text.includes('rights') || text.includes('article 16') || text.includes('part 3')) {
@@ -216,17 +240,14 @@ Under **Articles 20 and 21** of the Constitution of Nepal:
 *For citizenship applications, visit your local District Administration Office (Jilla Prasashan Karyalaya).*`;
   }
 
-  return `I am Nyaya Mitra AI, specialized in the **Constitution of Nepal (2015)**.
+  return `I am Nyaya Mitra AI, specialized in **Nepalese law**.
 
-I can only answer questions related to:
-- Fundamental Rights (Part 3)
-- State structure and governance
-- Constitutional provisions and articles
-- Citizenship and nationality
-- Constitutional bodies and commissions
-- Directive principles
+I can answer questions related to:
+- **Constitution of Nepal (2015)** — Fundamental Rights, State Structure, Citizenship
+- **Cyber Law** — Electronic Transactions Act, 2063 BS (hacking, online fraud, digital offences)
+- **Civil Law** — National Civil Code (Muluki Civil Code), 2074 BS (contracts, property, obligations)
 
-Please ask me a specific question about the Constitution of Nepal and I'll provide a detailed answer with article references.
+Please ask me a specific legal question and I'll provide a detailed answer with article/section references.
 
-*Note: Add your GEMINI_API_KEY in .env.local for full AI-powered responses from the Constitution PDF.*`;
+*Note: Add your GEMINI_API_KEY in .env.local for full AI-powered responses grounded in the actual PDF documents.*`;
 }

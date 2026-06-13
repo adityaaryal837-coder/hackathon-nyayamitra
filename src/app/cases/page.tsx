@@ -61,9 +61,11 @@ export default function CaseTracking() {
 
   const loadCaseDetails = async (caseId: string) => {
     try {
-      const ev = await dbService.getEvidenceForCase(caseId);
-      const up = await dbService.getCaseUpdates(caseId);
-      const notes = await dbService.getAdminNotes(caseId);
+      const [ev, up, notes] = await Promise.all([
+        dbService.getEvidenceForCase(caseId),
+        dbService.getCaseUpdates(caseId),
+        dbService.getAdminNotes(caseId)
+      ]);
       setEvidenceList(ev);
       setUpdates(up);
       setAdminNotes(notes);

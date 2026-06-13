@@ -6,6 +6,7 @@ export interface Profile {
   email: string;
   full_name: string;
   role: 'user' | 'admin';
+  is_blocked?: boolean;
   created_at: string;
 }
 
@@ -29,7 +30,7 @@ export interface Evidence {
   file_name: string;
   file_type: string;
   file_size: number;
-  file_url: string; 
+  file_url: string;
   uploaded_at: string;
 }
 
@@ -75,6 +76,8 @@ export interface Lawyer {
   rating: number;
   avatar_url?: string;
   is_available: boolean;
+  ticket_price: number;
+  qr_code_url?: string;
   created_at: string;
 }
 
@@ -98,10 +101,10 @@ export interface AdminNote {
 // Initialise Supabase Client if env variables exist
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const isSupabaseConfigured = 
-  supabaseUrl && 
-  supabaseUrl !== 'your_supabase_project_url_here' && 
-  supabaseAnonKey && 
+const isSupabaseConfigured =
+  supabaseUrl &&
+  supabaseUrl !== 'your_supabase_project_url_here' &&
+  supabaseAnonKey &&
   supabaseAnonKey !== 'your_supabase_anon_key_here';
 
 export const supabase = isSupabaseConfigured
@@ -216,51 +219,84 @@ const MOCK_LAWYERS: Lawyer[] = [
     id: 'l1',
     name: 'Senior Advocate Dr. Ram Chandra Pokharel',
     email: 'rc.pokharel@nepallegal.org',
-    phone: '+977-1-4220192',
+    phone: '+9779851012345',
     specialization: 'Constitutional Law',
     experience_years: 25,
     bio: 'Expert in constitutional remedies, administrative law, and human rights advocacy with over two decades of litigation in the Supreme Court of Nepal.',
     rating: 4.95,
+    avatar_url: '/image/lawyer_ram_chandra.png',
     is_available: true,
+    ticket_price: 1000,
+    qr_code_url: '/image/dummy_qr.png',
     created_at: new Date().toISOString()
   },
   {
     id: 'l2',
     name: 'Advocate Shreya Sharma',
     email: 'shreya.sharma@nyayafirm.com',
-    phone: '+977-9851023948',
+    phone: '+9779851023948',
     specialization: 'Fundamental Rights & Civil Law',
     experience_years: 8,
     bio: 'Dedicated attorney specializing in constitutional protection, civil liberty disputes, and marginalized group legal representation.',
     rating: 4.80,
+    avatar_url: '/image/lawyer_shreya_sharma.png',
     is_available: true,
+    ticket_price: 500,
+    qr_code_url: '/image/dummy_qr.png',
     created_at: new Date().toISOString()
   },
   {
     id: 'l3',
     name: 'Advocate Nabin Bahadur Thapa',
     email: 'nabin.thapa@legalchambers.com',
-    phone: '+977-9841394850',
+    phone: '+9779841394850',
     specialization: 'Criminal Defense & Human Rights',
     experience_years: 15,
     bio: 'Experienced defense attorney focusing on civil liberties, constitutional rights under arrest, and fair trial procedures.',
     rating: 4.90,
+    avatar_url: '/image/lawyer_nabin_thapa.png',
     is_available: false,
+    ticket_price: 800,
+    qr_code_url: '/image/dummy_qr.png',
     created_at: new Date().toISOString()
   },
   {
     id: 'l4',
     name: 'Advocate Deepa Karki',
     email: 'deepa.karki@nyayafocus.org.np',
-    phone: '+977-9818475839',
+    phone: '+9779818475839',
     specialization: 'Family Law & Gender Rights',
     experience_years: 10,
     bio: 'Activist and legal practitioner specializing in gender justice, family law reforms, domestic disputes, and rights protections under the Constitution.',
     rating: 4.85,
+    avatar_url: '/image/lawyer_deepa_karki.png',
     is_available: true,
+    ticket_price: 500,
+    qr_code_url: '/image/dummy_qr.png',
     created_at: new Date().toISOString()
   }
 ];
+
+const getLocalLawyers = (): Lawyer[] => {
+  if (typeof window === 'undefined') return MOCK_LAWYERS;
+  const local = localStorage.getItem('nyaya_mitra_lawyers');
+  if (!local) {
+    localStorage.setItem('nyaya_mitra_lawyers', JSON.stringify(MOCK_LAWYERS));
+    return MOCK_LAWYERS;
+  }
+  try {
+    return JSON.parse(local);
+  } catch {
+    return MOCK_LAWYERS;
+  }
+};
+
+const saveLocalLawyers = (lawyers: Lawyer[]) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('nyaya_mitra_lawyers', JSON.stringify(lawyers));
+  }
+};
+
 
 const getLocalPosts = (): FeedPost[] => {
   if (typeof window === 'undefined') return [];
@@ -297,6 +333,12 @@ const getLocalComments = (postId: string): PostComment[] => {
   }
 };
 
+const saveLocalComments = (postId: string, comments: PostComment[]) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(`nyaya_mitra_comments_${postId}`, JSON.stringify(comments));
+  }
+};
+
 function base64ToBlob(base64: string): Blob {
   let contentType = 'image/jpeg';
   let base64Data = base64;
@@ -305,9 +347,9 @@ function base64ToBlob(base64: string): Blob {
     contentType = parts[0].split(':')[1];
     base64Data = parts[1];
   }
-  
-  const raw = typeof window !== 'undefined' 
-    ? window.atob(base64Data) 
+
+  const raw = typeof window !== 'undefined'
+    ? window.atob(base64Data)
     : Buffer.from(base64Data, 'base64').toString('binary');
   const rawLength = raw.length;
   const uInt8Array = new Uint8Array(rawLength);
@@ -448,13 +490,13 @@ export const dbService = {
     if (!supabase) throw new Error('Supabase client not initialized');
     const fileExt = file.name.split('.').pop();
     const filePath = `${caseId}/${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-    
+
     const { data, error } = await supabase.storage
-        .from('evidence-vault')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+      .from('evidence-vault')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
 
     if (error) throw error;
 
@@ -554,9 +596,9 @@ export const dbService = {
   },
 
   async createFeedPost(
-    title: string, 
-    content: string, 
-    authorName: string, 
+    title: string,
+    content: string,
+    authorName: string,
     category: string,
     anonymous = false,
     anonymousId = '',
@@ -594,7 +636,7 @@ export const dbService = {
           const blob = base64ToBlob(base64Str);
           const fileExt = blob.type.split('/')[1] || 'jpg';
           const filePath = `post-${newPostId}-${i}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-          
+
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('community-posts')
             .upload(filePath, blob, {
@@ -602,16 +644,16 @@ export const dbService = {
               cacheControl: '3600',
               upsert: false
             });
-          
+
           if (uploadError) {
             console.error('Error uploading community post image:', uploadError);
             throw uploadError;
           }
-          
+
           const { data: publicUrlData } = supabase.storage
             .from('community-posts')
             .getPublicUrl(filePath);
-          
+
           if (publicUrlData?.publicUrl) {
             imageUrls.push(publicUrlData.publicUrl);
           }
@@ -636,7 +678,7 @@ export const dbService = {
         })
         .select()
         .single();
-      
+
       if (error || !data) {
         throw new Error(error?.message || 'Failed to insert post');
       }
@@ -663,7 +705,7 @@ export const dbService = {
     const localPosts = getLocalPosts();
     const postIdx = localPosts.findIndex(p => p.id === postId);
     let updatedLocalPost: FeedPost | null = null;
-    
+
     if (postIdx !== -1) {
       const posts = [...localPosts];
       const post = posts[postIdx];
@@ -724,7 +766,7 @@ export const dbService = {
     const localPosts = getLocalPosts();
     const postIdx = localPosts.findIndex(p => p.id === postId);
     let updatedLocalPost: FeedPost | null = null;
-    
+
     if (postIdx !== -1) {
       const posts = [...localPosts];
       const post = posts[postIdx];
@@ -820,6 +862,90 @@ export const dbService = {
     }
   },
 
+  async deletePostComment(commentId: string): Promise<boolean> {
+    if (typeof window !== 'undefined') {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('nyaya_mitra_comments_')) {
+          const commentsRaw = localStorage.getItem(key);
+          if (commentsRaw) {
+            try {
+              const comments = JSON.parse(commentsRaw) as PostComment[];
+              if (comments.some(c => c.id === commentId)) {
+                const updated = comments.filter(c => c.id !== commentId);
+                localStorage.setItem(key, JSON.stringify(updated));
+                break;
+              }
+            } catch {}
+          }
+        }
+      }
+    }
+
+    if (!supabase) return true;
+    try {
+      const { error } = await supabase
+        .from('post_comments')
+        .delete()
+        .eq('id', commentId);
+      return !error;
+    } catch {
+      return false;
+    }
+  },
+
+  async getAllProfiles(): Promise<Profile[]> {
+    if (!supabase) {
+      const stored = typeof window !== 'undefined' ? localStorage.getItem('nyaya_mitra_profiles_mock') : null;
+      if (stored) {
+        try { return JSON.parse(stored); } catch {}
+      }
+      const defaultMock: Profile[] = [
+        { id: 'mock-u1', email: 'aayush@nepallegal.org', full_name: 'Aayush Shrestha', role: 'user', is_blocked: false, created_at: new Date().toISOString() },
+        { id: 'mock-u2', email: 'prerna@nyayafirm.com', full_name: 'Prerna Adhikari', role: 'user', is_blocked: false, created_at: new Date().toISOString() },
+        { id: 'mock-u3', email: 'hari@gmail.com', full_name: 'Hari Prasad Devkota', role: 'user', is_blocked: false, created_at: new Date().toISOString() },
+        { id: 'mock-admin', email: 'admin@nyayamitra.org.np', full_name: 'System Admin', role: 'admin', is_blocked: false, created_at: new Date().toISOString() }
+      ];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('nyaya_mitra_profiles_mock', JSON.stringify(defaultMock));
+      }
+      return defaultMock;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) return [];
+      return data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  async blockUser(userId: string, blocked: boolean): Promise<boolean> {
+    if (!supabase) {
+      const stored = typeof window !== 'undefined' ? localStorage.getItem('nyaya_mitra_profiles_mock') : null;
+      if (stored) {
+        try {
+          const profiles = JSON.parse(stored) as Profile[];
+          const updated = profiles.map(p => p.id === userId ? { ...p, is_blocked: blocked } : p);
+          localStorage.setItem('nyaya_mitra_profiles_mock', JSON.stringify(updated));
+        } catch {}
+      }
+      return true;
+    }
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_blocked: blocked })
+        .eq('id', userId);
+      return !error;
+    } catch {
+      return false;
+    }
+  },
+
   // Comments
   async getPostComments(postId: string): Promise<PostComment[]> {
     if (!supabase) return getLocalComments(postId);
@@ -880,20 +1006,188 @@ export const dbService = {
 
   // Lawyers
   async getLawyers(): Promise<Lawyer[]> {
-    if (!supabase) return MOCK_LAWYERS;
+    if (!supabase) return getLocalLawyers();
     try {
       const { data, error } = await supabase
         .from('lawyers')
         .select('*')
         .order('name', { ascending: true });
       if (error || !data || data.length === 0) {
-        return MOCK_LAWYERS;
+        return getLocalLawyers();
       }
       return data;
     } catch (e) {
-      console.warn('Supabase lawyers query failed, falling back to mock lawyers:', e);
-      return MOCK_LAWYERS;
+      console.warn('Supabase lawyers query failed, falling back to local lawyers:', e);
+      return getLocalLawyers();
     }
+  },
+
+  async createLawyer(lawyerData: Partial<Lawyer>): Promise<Lawyer> {
+    const localLawyers = getLocalLawyers();
+    const newLawyer: Lawyer = {
+      id: Math.random().toString(36).substring(2, 9),
+      name: lawyerData.name || 'Anonymous Advocate',
+      email: lawyerData.email || '',
+      phone: lawyerData.phone || '',
+      specialization: lawyerData.specialization || 'Constitutional Law',
+      experience_years: lawyerData.experience_years || 0,
+      bio: lawyerData.bio || '',
+      rating: lawyerData.rating || 5.00,
+      avatar_url: lawyerData.avatar_url || '',
+      is_available: lawyerData.is_available ?? true,
+      ticket_price: lawyerData.ticket_price || 500,
+      qr_code_url: lawyerData.qr_code_url || '/image/dummy_qr.png',
+      created_at: new Date().toISOString()
+    };
+
+    if (!supabase) {
+      const updated = [newLawyer, ...localLawyers];
+      saveLocalLawyers(updated);
+      return newLawyer;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('lawyers')
+        .insert({
+          name: newLawyer.name,
+          email: newLawyer.email,
+          phone: newLawyer.phone,
+          specialization: newLawyer.specialization,
+          experience_years: newLawyer.experience_years,
+          bio: newLawyer.bio,
+          rating: newLawyer.rating,
+          avatar_url: newLawyer.avatar_url,
+          is_available: newLawyer.is_available,
+          ticket_price: newLawyer.ticket_price,
+          qr_code_url: newLawyer.qr_code_url,
+        })
+        .select()
+        .single();
+
+      if (error || !data) {
+        throw new Error(error?.message || 'Failed to insert lawyer');
+      }
+      return data;
+    } catch (e) {
+      console.warn('Supabase createLawyer failed, saving locally:', e);
+      const updated = [newLawyer, ...localLawyers];
+      saveLocalLawyers(updated);
+      return newLawyer;
+    }
+  },
+
+  async updateLawyer(id: string, lawyerData: Partial<Lawyer>): Promise<Lawyer> {
+    const localLawyers = getLocalLawyers();
+    const index = localLawyers.findIndex(l => l.id === id);
+    let updatedLocalLawyer: Lawyer | null = null;
+
+    if (index !== -1) {
+      const updated = [...localLawyers];
+      updated[index] = {
+        ...updated[index],
+        ...lawyerData
+      };
+      saveLocalLawyers(updated);
+      updatedLocalLawyer = updated[index];
+    }
+
+    if (!supabase) {
+      if (!updatedLocalLawyer) throw new Error('Lawyer not found');
+      return updatedLocalLawyer;
+    }
+
+    try {
+      const isUuid = id.length === 36 && id.includes('-');
+      if (!isUuid) {
+        return updatedLocalLawyer || { id, ...lawyerData } as Lawyer;
+      }
+
+      const { data, error } = await supabase
+        .from('lawyers')
+        .update({
+          name: lawyerData.name,
+          email: lawyerData.email,
+          phone: lawyerData.phone,
+          specialization: lawyerData.specialization,
+          experience_years: lawyerData.experience_years,
+          bio: lawyerData.bio,
+          rating: lawyerData.rating,
+          avatar_url: lawyerData.avatar_url,
+          is_available: lawyerData.is_available,
+          ticket_price: lawyerData.ticket_price,
+          qr_code_url: lawyerData.qr_code_url,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error || !data) {
+        throw new Error(error?.message || 'Failed to update lawyer');
+      }
+      return data;
+    } catch (e) {
+      console.warn('Supabase updateLawyer failed, fallback to local update:', e);
+      if (!updatedLocalLawyer) throw new Error('Lawyer not found');
+      return updatedLocalLawyer;
+    }
+  },
+
+  async deleteLawyer(id: string): Promise<boolean> {
+    const localLawyers = getLocalLawyers();
+    const updated = localLawyers.filter(l => l.id !== id);
+    saveLocalLawyers(updated);
+
+    if (!supabase) return true;
+
+    try {
+      const isUuid = id.length === 36 && id.includes('-');
+      if (!isUuid) {
+        return true;
+      }
+
+      const { error } = await supabase
+        .from('lawyers')
+        .delete()
+        .eq('id', id);
+
+      return !error;
+    } catch {
+      return true;
+    }
+  },
+
+  async uploadLawyerAvatar(file: File): Promise<string> {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    const fileExt = file.name.split('.').pop();
+    const filePath = `avatars/${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('lawyer-avatars')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      if (!error) {
+        const { data: publicUrlData } = supabase.storage
+          .from('lawyer-avatars')
+          .getPublicUrl(filePath);
+        return publicUrlData.publicUrl;
+      }
+    } catch {}
+
+    const { data, error } = await supabase.storage
+      .from('community-posts')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+    if (error) throw error;
+    const { data: publicUrlData } = supabase.storage
+      .from('community-posts')
+      .getPublicUrl(filePath);
+    return publicUrlData.publicUrl;
   },
 
   // Notifications

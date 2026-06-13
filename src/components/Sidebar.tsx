@@ -54,6 +54,36 @@ const Sidebar: React.FC = () => {
 
   if (loading || !user) return null;
 
+  if (user.is_blocked) {
+    return (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#06101c] p-4 text-[#EBF4FF]">
+        <div className="bg-[#0c1827] border-2 border-red-500/30 rounded-[32px] max-w-md w-full p-8 text-center space-y-6 shadow-2xl relative overflow-hidden">
+          <div className="p-4 bg-red-500/15 rounded-2xl w-fit mx-auto text-red-500">
+            <ShieldAlert className="h-12 w-12 animate-bounce" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="font-serif text-2xl font-bold tracking-tight text-white">Access Denied</h1>
+            <p className="text-sm text-red-400 font-bold uppercase tracking-wider font-sans">Account Blocked</p>
+          </div>
+          <p className="text-xs text-brand-200/80 leading-relaxed font-sans font-medium">
+            Your account has been suspended by an administrator for violating community guidelines, posting inappropriate content, or sharing misleading comments.
+          </p>
+          <div className="border-t border-[#D4AF37]/10 pt-4 space-y-4">
+            <p className="text-[10px] text-brand-300/60 font-sans">
+              If you believe this is a mistake, please reach out to support at <strong>support@nyayamitra.org.np</strong>.
+            </p>
+            <button
+              onClick={handleLogout}
+              className="w-full py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-xs uppercase tracking-widest shadow-md transition-all active:scale-95 cursor-pointer font-sans"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const isAdmin = user.role === 'admin';
 
   const userLinks = [
@@ -68,8 +98,8 @@ const Sidebar: React.FC = () => {
   const adminLinks = [
     { name: 'Admin Overview', href: '/admin-panel', icon: ShieldAlert },
     { name: 'Case Review', href: '/admin-panel/cases', icon: Gavel },
-    { name: 'Community Feed', href: '/community', icon: Users },
-    { name: 'Verified Lawyers', href: '/lawyers', icon: Briefcase },
+    { name: 'Manage Lawyers', href: '/admin-panel/lawyers', icon: Briefcase },
+    { name: 'Manage Feed', href: '/admin-panel/feed', icon: Users },
   ];
 
   const activeLinks = isAdmin ? adminLinks : userLinks;

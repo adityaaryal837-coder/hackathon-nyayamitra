@@ -8,8 +8,8 @@ import { useAuth } from '@/lib/auth';
 import { useLanguage } from '@/lib/LanguageContext';
 
 const Header: React.FC = () => {
-  const pathname  = usePathname();
-  const router    = useRouter();
+  const pathname = usePathname();
+  const router = useRouter();
   const { user, loading, signOut } = useAuth();
   const { t } = useLanguage();
   const [scrolled, setScrolled] = useState(false);

@@ -17,6 +17,41 @@ interface ChatMessage {
   timestamp: Date;
 }
 
+// ─── Session storage key & 10-minute TTL ──────────────────────────────────────
+const SESSION_KEY = 'nyaya_mitra_chat_session';
+const SESSION_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+const DEFAULT_GREETING: ChatMessage = {
+  role: 'assistant',
+  content: "Namaste! \uD83D\uDE4F I am **Nyaya Mitra AI**, your digital legal companion for Nepalese law.\n\nI can help you understand:\n- **Fundamental Rights** \u2014 Constitution of Nepal (2015)\n- **Cyber Law** \u2014 Electronic Transactions Act, 2063 BS\n- **Civil & Contract Law** \u2014 National Civil Code (Muluki Civil Code), 2074 BS\n\nAll answers are grounded in the official Nepalese legal documents. Select a reported case from the top for a legal audit, or ask me any legal question below.",
+  timestamp: new Date()
+};
+
+function loadChatSession(): ChatMessage[] {
+  if (typeof window === 'undefined') return [DEFAULT_GREETING];
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return [DEFAULT_GREETING];
+    const parsed = JSON.parse(raw) as { savedAt: number; messages: { role: 'user' | 'assistant'; content: string; timestamp: string }[] };
+    // Check TTL — expire after 10 minutes
+    if (Date.now() - parsed.savedAt > SESSION_TTL_MS) {
+      sessionStorage.removeItem(SESSION_KEY);
+      return [DEFAULT_GREETING];
+    }
+    // Revive timestamp strings back to Date objects
+    return parsed.messages.map(m => ({ ...m, timestamp: new Date(m.timestamp) }));
+  } catch {
+    return [DEFAULT_GREETING];
+  }
+}
+
+function saveChatSession(messages: ChatMessage[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ savedAt: Date.now(), messages }));
+  } catch {}
+}
+
 export default function AILegalAssistant() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
@@ -24,23 +59,17 @@ export default function AILegalAssistant() {
   const [selectedCaseId, setSelectedCaseId] = useState<string>('general');
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
 
-  // Chat states
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: 'assistant',
-      content: "Namaste! 🙏 I am **Nyaya Mitra AI**, your digital companion for the **Constitution of Nepal (2015)**.\n\nI can help you understand your fundamental rights, state structure, constitutional provisions, and legal remedies — all grounded in the official Constitution of Nepal document.\n\nSelect a reported case from the top to run a legal compliance audit, or ask me any question about the Constitution of Nepal below.",
-      timestamp: new Date()
-    }
-  ]);
+  // Chat states — initialised from sessionStorage (10-min TTL)
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadChatSession());
   const [inputVal, setInputVal] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Suggested prompts — Nepal Constitution specific
+  // Suggested prompts — covering all three legal documents
   const suggestions = [
-    "What are my fundamental rights under the Constitution?",
-    "What does Article 20 say about criminal justice?",
     "Explain my rights if I am arrested by police.",
+    "What does cyber law of Nepal say about hacking?",
+    "What are contract obligations under the Civil Code?",
     "What is the right to constitutional remedy (Article 46)?"
   ];
 
@@ -52,6 +81,11 @@ export default function AILegalAssistant() {
     }
     loadCases(user.id);
   }, [user, authLoading, router]);
+
+  // Persist chat session to sessionStorage whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) saveChatSession(messages);
+  }, [messages]);
 
   useEffect(() => {
     // Scroll chat to bottom on new message
@@ -167,7 +201,7 @@ export default function AILegalAssistant() {
               AI Legal Assistant
             </h1>
             <p className="text-[11px] font-sans text-legal-navy/60 dark:text-legal-bone/60">
-              Powered by Gemini AI · Grounded in the Constitution of Nepal (2015) · Article-referenced answers.
+              Powered by Gemini AI · Constitution of Nepal (2015) · Cyber Law (ETA, 2063 BS) · National Civil Code (2074 BS)
             </p>
           </div>
 

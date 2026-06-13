@@ -1,21 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const geminiKey = process.env.GEMINI_API_KEY;
-
-const genAI = geminiKey && geminiKey !== 'your_gemini_api_key_here'
-  ? new GoogleGenerativeAI(geminiKey)
-  : null;
+import { generateWithFallback } from '@/lib/geminiManager';
 
 export async function POST(req: NextRequest) {
   try {
     const { title, description, evidenceCount } = await req.json();
-
-    if (!genAI) {
-      return NextResponse.json({ error: 'Gemini not configured' }, { status: 503 });
-    }
-
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `
 You are a legal case analyst for Nepal. Analyze the following incident report in the context of Nepal's laws and the Constitution of Nepal (2015).
@@ -33,7 +21,7 @@ Provide your analysis strictly in JSON format with the following keys:
 Output ONLY valid JSON. Do NOT include markdown code block formatting.
     `.trim();
 
-    const result = await model.generateContent(prompt);
+    const result = await generateWithFallback('gemini-1.5-flash', prompt);
     const text = result.response.text().trim();
     const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(jsonStr);

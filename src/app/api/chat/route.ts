@@ -1,32 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import fs from 'fs';
 import path from 'path';
+import { generateWithFallback } from '@/lib/geminiManager';
 
-// ─── Gemini client (server-side only — key is NOT exposed to browser) ─────────
-const geminiKey = process.env.GEMINI_API_KEY;
+// ─── System prompt — Nepal legal documents ────────────────────────────────────
+const SYSTEM_PROMPT = `You are "Nyaya Mitra AI", a specialized legal assistant for Nepal.
 
-if (!geminiKey || geminiKey === 'your_gemini_api_key_here') {
-  console.warn('[chat/route] GEMINI_API_KEY is not set in .env.local');
-}
-
-const genAI = geminiKey && geminiKey !== 'your_gemini_api_key_here'
-  ? new GoogleGenerativeAI(geminiKey)
-  : null;
-
-// ─── System prompt — strictly Constitution of Nepal ──────────────────────────
-const SYSTEM_PROMPT = `You are "Nyaya Mitra AI", a specialized constitutional legal assistant for Nepal.
+You have been provided with the following Nepalese legal documents:
+1. The Constitution of Nepal (2015 / 2072 BS) - the supreme law of Nepal
+2. The Electronic Transactions Act (Cyber Law) of Nepal
+3. The National Civil Code (Muluki Civil Code) Contract provisions
 
 STRICT RULES:
-1. You MUST only answer questions based on the Constitution of Nepal (2015 / 2072 BS) provided to you as a document.
-2. If a question is NOT related to the Constitution of Nepal, politely decline and say:
-   "I can only assist with questions about the Constitution of Nepal (2015). Please ask me about fundamental rights, state structure, governance, constitutional provisions, or related legal matters."
-3. Always cite the relevant Part, Article, or Schedule number from the Constitution in your answer.
-4. Be clear, professional, and helpful. Explain legal terms in plain language.
-5. You may give brief legal disclaimers when appropriate (e.g., "For official legal advice, consult a licensed advocate").
-6. Do NOT answer questions about other countries' laws, general knowledge, science, entertainment, or anything outside the Constitution of Nepal.
-7. Format your answers clearly using numbered points or sections where appropriate.
-8. When referencing articles, use the format: "Article [number], Part [number] of the Constitution of Nepal".`;
+1. Answer questions ONLY based on the Nepalese legal documents provided to you.
+2. For questions about cyber law, hacking, online fraud, digital transactions — refer to the Electronic Transactions Act (Cyber Law).
+3. For contract disputes, civil obligations, property — refer to the National Civil Code.
+4. For fundamental rights, state structure, citizenship — refer to the Constitution of Nepal.
+5. Always cite the relevant Article, Section, or Schedule number from the appropriate document.
+6. Be clear, professional, and helpful. Explain legal terms in simple, plain language.
+7. Give brief legal disclaimers when appropriate (e.g., "For official legal advice, consult a licensed advocate / Vakil").
+8. Do NOT answer questions about other countries' laws, general knowledge, science, or entertainment.
+9. Format your answers clearly using numbered points or sections where appropriate.
+10. When referencing the Constitution, use: "Article [number], Part [number] of the Constitution of Nepal".
+11. When referencing Cyber Law, use: "Section [number] of the Electronic Transactions Act, 2063 BS".
+12. When referencing Civil Code, use: "Section [number] of the Muluki Civil Code, 2074 BS".`;
 
 // ─── Route Handler ────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
@@ -38,32 +35,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No messages provided.' }, { status: 400 });
     }
 
-    // ── If Gemini is not configured, return a clear error ──
-    if (!genAI) {
-      return NextResponse.json({
-        reply: '⚠️ The AI assistant is not configured. Please add your GEMINI_API_KEY to the .env.local file and restart the server.',
-        source: 'error'
-      });
+    // ── Load legal PDFs from public/laws/ directory ──
+    const lawsDir = path.join(process.cwd(), 'public', 'laws');
+
+    // Define PDFs to load — Constitution is required, others are supplementary
+    const pdfFiles = [
+      { name: 'ConstitutionOfNepal.pdf', required: true },
+      { name: 'CyberLaw.pdf', required: false },
+      { name: 'NationalCivilCodeContract.pdf', required: false },
+    ];
+
+    const loadedPdfs: { name: string; base64: string }[] = [];
+
+    for (const pdfFile of pdfFiles) {
+      const pdfPath = path.join(lawsDir, pdfFile.name);
+      if (fs.existsSync(pdfPath)) {
+        const pdfBuffer = fs.readFileSync(pdfPath);
+        loadedPdfs.push({ name: pdfFile.name, base64: pdfBuffer.toString('base64') });
+        console.log(`[chat/route] Loaded PDF: ${pdfFile.name}`);
+      } else if (pdfFile.required) {
+        console.error(`[chat/route] Required PDF missing: ${pdfFile.name}`);
+        return NextResponse.json({
+          reply: `⚠️ The Constitution of Nepal PDF is missing. Please ensure "ConstitutionOfNepal.pdf" exists in the public/laws/ folder.`,
+          source: 'error'
+        });
+      } else {
+        console.warn(`[chat/route] Optional PDF not found: ${pdfFile.name}`);
+      }
     }
-
-    // ── Load the Constitution of Nepal PDF from the filesystem ──
-    const pdfPath = path.join(process.cwd(), 'public', 'nepal-constitution.pdf');
-    
-    if (!fs.existsSync(pdfPath)) {
-      return NextResponse.json({
-        reply: '⚠️ The Constitution of Nepal PDF is missing from the server. Please ensure "nepal-constitution.pdf" exists in the public/ folder.',
-        source: 'error'
-      });
-    }
-
-    const pdfBuffer = fs.readFileSync(pdfPath);
-    const pdfBase64 = pdfBuffer.toString('base64');
-
-    // ── Build Gemini model ──
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      systemInstruction: SYSTEM_PROMPT,
-    });
 
     // ── Build chat history (all prior messages except the last user message) ──
     const lastUserMessage = messages[messages.length - 1].content;
@@ -72,17 +71,18 @@ export async function POST(req: NextRequest) {
       .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
       .join('\n');
 
-    // ── Compose the prompt with PDF inline (only send PDF on first message or every request) ──
-    // We inline the PDF every request since the context window is reset each call
+    // ── Compose the prompt with all PDFs inline ──
     const parts: any[] = [];
 
-    // Attach the PDF as inline data
-    parts.push({
-      inlineData: {
-        data: pdfBase64,
-        mimeType: 'application/pdf',
-      },
-    });
+    // Attach all loaded PDFs as inline data
+    for (const pdf of loadedPdfs) {
+      parts.push({
+        inlineData: {
+          data: pdf.base64,
+          mimeType: 'application/pdf',
+        },
+      });
+    }
 
     // Add conversation context if any
     if (historyForContext.trim()) {
@@ -94,7 +94,13 @@ export async function POST(req: NextRequest) {
     // Add the current user question
     parts.push({ text: lastUserMessage });
 
-    const result = await model.generateContent({ contents: [{ role: 'user', parts }] });
+    // ── Generate content with fallback manager ──
+    const result = await generateWithFallback(
+      'gemini-2.5-flash',
+      { contents: [{ role: 'user', parts }] },
+      SYSTEM_PROMPT
+    );
+    
     const reply = result.response.text();
 
     return NextResponse.json({ reply, source: 'gemini' });
@@ -102,6 +108,15 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     console.error('[chat/route] Gemini API error:', err);
     const message = err instanceof Error ? err.message : 'Unknown error';
+    
+    // Check if it's the missing key error specifically to show a clean message
+    if (message.includes('No valid GEMINI_API_KEY')) {
+      return NextResponse.json({
+        reply: '⚠️ The AI assistant is not configured. Please add your GEMINI_API_KEY to the .env.local file and restart the server.',
+        source: 'error'
+      });
+    }
+    
     return NextResponse.json({
       reply: `I'm having trouble connecting to the AI right now. Please try again in a moment. (Error: ${message})`,
       source: 'error'

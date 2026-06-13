@@ -18,9 +18,9 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'home',    labelKey: 'nav.home',    icon: Home,      isScroll: true },
-  { id: 'about',   labelKey: 'nav.about',   icon: Info,      isScroll: true },
-  { id: 'blog',    labelKey: 'nav.blog',    icon: BookOpen,  isScroll: true },
+  { id: 'home', labelKey: 'nav.home', icon: Home, isScroll: true },
+  { id: 'about', labelKey: 'nav.about', icon: Info, isScroll: true },
+  { id: 'blog', labelKey: 'nav.blog', icon: BookOpen, isScroll: true },
   { id: 'contact', labelKey: 'nav.contact', icon: PhoneCall, isScroll: true },
 ];
 
@@ -29,9 +29,9 @@ const PublicSidebar: React.FC = () => {
   const router = useRouter();
   const { language, setLanguage, t } = useLanguage();
 
-  const [isCollapsed, setIsCollapsed]   = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [theme, setTheme]               = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [activeSection, setActiveSection] = useState('home');
 
   // ── Theme sync ────────────────────────────────────────────────────────────
@@ -76,12 +76,12 @@ const PublicSidebar: React.FC = () => {
 
   // ── Sidebar toggle event (from Header hamburger) ──────────────────────────
   useEffect(() => {
-    const open  = () => setIsMobileOpen(true);
+    const open = () => setIsMobileOpen(true);
     const close = () => setIsMobileOpen(false);
-    window.addEventListener('nyaya-sidebar-open',  open);
+    window.addEventListener('nyaya-sidebar-open', open);
     window.addEventListener('nyaya-sidebar-close', close);
     return () => {
-      window.removeEventListener('nyaya-sidebar-open',  open);
+      window.removeEventListener('nyaya-sidebar-open', open);
       window.removeEventListener('nyaya-sidebar-close', close);
     };
   }, []);
@@ -204,7 +204,7 @@ const PublicSidebar: React.FC = () => {
           title={isCollapsed && !mobile ? (theme === 'dark' ? t('nav.themeLight') : t('nav.themeDark')) : undefined}
         >
           {theme === 'dark'
-            ? <Sun  className="h-5 w-5 text-amber-400 flex-shrink-0" />
+            ? <Sun className="h-5 w-5 text-amber-400 flex-shrink-0" />
             : <Moon className="h-5 w-5 text-brand-700 dark:text-brand-300 flex-shrink-0" />
           }
           {(!isCollapsed || mobile) && (
@@ -223,7 +223,7 @@ const PublicSidebar: React.FC = () => {
           >
             {isCollapsed
               ? <ChevronRight className="h-4 w-4" />
-              : <ChevronLeft  className="h-4 w-4" />
+              : <ChevronLeft className="h-4 w-4" />
             }
           </button>
         )}

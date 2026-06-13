@@ -5,17 +5,18 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { dbService, FeedPost, PostComment } from '@/lib/db';
 import { useAuth } from '@/lib/auth';
-import { 
-  Users, MessageSquare, Plus, Clock, ChevronUp, ChevronDown, 
+import {
+  Users, MessageSquare, Plus, Clock, ChevronUp, ChevronDown,
   Send, AlertTriangle, CheckCircle, Search, Filter, Loader2,
   Share2, Bookmark, Image as ImageIcon, Camera, Trash2, X,
-  UserCheck, Flame, FolderOpen, ShieldAlert, Sparkles, LogIn
+  UserCheck, Flame, FolderOpen, ShieldAlert, Sparkles, LogIn,
+  ThumbsUp, ThumbsDown
 } from 'lucide-react';
 
 export default function CommunityPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  
+
   // State variables
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,13 +24,13 @@ export default function CommunityPage() {
   const [activeNav, setActiveNav] = useState('all_discussions'); // 'all_discussions' | 'trending_today' | 'my_saved_posts'
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'Latest' | 'Most Voted' | 'Trending'>('Latest');
-  
+
   // Comments mapping (postId -> list of comments)
   const [commentsMap, setCommentsMap] = useState<Record<string, PostComment[]>>({});
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
   const [newComments, setNewComments] = useState<Record<string, string>>({});
   const [submittingComment, setSubmittingComment] = useState<Record<string, boolean>>({});
-  
+
   // Bookmarks & local votes
   const [userVotes, setUserVotes] = useState<Record<string, 'agree' | 'disagree' | null>>({});
   const [savedPosts, setSavedPosts] = useState<string[]>([]);
@@ -48,11 +49,11 @@ export default function CommunityPage() {
 
   // Categories definition
   const categories = [
-    'All', 
-    'Constitutional Remedies', 
-    'Fundamental Rights', 
-    'Civil Rights', 
-    'Criminal Justice', 
+    'All',
+    'Constitutional Remedies',
+    'Fundamental Rights',
+    'Civil Rights',
+    'Criminal Justice',
     'General Discussion'
   ];
 
@@ -84,7 +85,7 @@ export default function CommunityPage() {
       setLoading(true);
       const feedPosts = await dbService.getFeedPosts(false);
       setPosts(feedPosts);
-      
+
       // Preload comments counts for all posts
       const initialComments: Record<string, PostComment[]> = {};
       for (const post of feedPosts) {
@@ -142,7 +143,7 @@ export default function CommunityPage() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const files = Array.from(e.target.files);
-    
+
     // Max 4 images limit
     if (selectedImages.length + files.length > 4) {
       setErrorMsg('You can attach up to 4 images per post.');
@@ -174,10 +175,10 @@ export default function CommunityPage() {
     try {
       setIsCreatingPost(true);
       setErrorMsg('');
-      
+
       let author = user?.full_name || 'Anonymous Member';
       let anonId = '';
-      
+
       if (isAnonymous) {
         // Generate a unique short code for this post identity
         anonId = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -185,9 +186,9 @@ export default function CommunityPage() {
       }
 
       await dbService.createFeedPost(
-        postTitle.trim(), 
-        postContent.trim(), 
-        author, 
+        postTitle.trim(),
+        postContent.trim(),
+        author,
         postCategory,
         isAnonymous,
         anonId,
@@ -199,7 +200,7 @@ export default function CommunityPage() {
       setPostContent('');
       setSelectedImages([]);
       setIsAnonymous(false);
-      
+
       await loadFeed();
       setTimeout(() => {
         setSuccessMsg('');
@@ -281,7 +282,7 @@ export default function CommunityPage() {
   const toggleComments = async (postId: string) => {
     const isExpanded = !expandedComments[postId];
     setExpandedComments(prev => ({ ...prev, [postId]: isExpanded }));
-    
+
     if (isExpanded) {
       try {
         const comments = await dbService.getPostComments(postId);
@@ -300,7 +301,7 @@ export default function CommunityPage() {
       setSubmittingComment(prev => ({ ...prev, [postId]: true }));
       const author = user?.full_name || 'Anonymous Contributor';
       const comment = await dbService.createPostComment(postId, author, text);
-      
+
       setCommentsMap(prev => ({
         ...prev,
         [postId]: [...(prev[postId] || []), comment]
@@ -334,9 +335,9 @@ export default function CommunityPage() {
     // Search Query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(post => 
-        post.title.toLowerCase().includes(q) || 
-        post.content.toLowerCase().includes(q) || 
+      result = result.filter(post =>
+        post.title.toLowerCase().includes(q) ||
+        post.content.toLowerCase().includes(q) ||
         post.author_name.toLowerCase().includes(q)
       );
     }
@@ -372,7 +373,7 @@ export default function CommunityPage() {
 
       {/* Main Container */}
       <main className="flex-1 overflow-y-auto px-4 py-8 md:p-8 space-y-6 scroll-smooth">
-        
+
         {/* Header Block */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-[#D4AF37]/25">
           <div>
@@ -415,8 +416,8 @@ export default function CommunityPage() {
                 key={cat}
                 onClick={() => setActiveTab(cat)}
                 className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all
-                  ${activeTab === cat 
-                    ? 'bg-[#0B192C] text-white' 
+                  ${activeTab === cat
+                    ? 'bg-[#0B192C] text-white'
                     : 'bg-[#EAF6FF]/40 text-[#0B192C]/80 hover:bg-[#DCEFFF] border border-[#DCEFFF]'}`}
               >
                 {cat}
@@ -427,10 +428,10 @@ export default function CommunityPage() {
 
         {/* 3-Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
+
           {/* LEFT COLUMN: NAVIGATION & CATEGORIES */}
           <div className="lg:col-span-3 hidden lg:block space-y-5">
-            
+
             {/* NAVIGATION PANEL */}
             <div className="bg-white rounded-2xl border border-[#D4AF37]/15 p-4 space-y-4 shadow-sm">
               <h3 className="text-[10px] font-extrabold uppercase tracking-widest text-[#0B192C]/40 border-b border-[#EAF6FF] pb-2">
@@ -440,8 +441,8 @@ export default function CommunityPage() {
                 <button
                   onClick={() => { setActiveNav('all_discussions'); setActiveTab('All'); }}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all
-                    ${activeNav === 'all_discussions' 
-                      ? 'bg-[#0B192C]/10 text-[#0B192C] border-l-4 border-[#0B192C]' 
+                    ${activeNav === 'all_discussions'
+                      ? 'bg-[#0B192C]/10 text-[#0B192C] border-l-4 border-[#0B192C]'
                       : 'text-[#0B192C]/70 hover:bg-[#EAF6FF]/40 hover:text-[#0B192C]'}`}
                 >
                   <Users className="h-4 w-4" />
@@ -450,8 +451,8 @@ export default function CommunityPage() {
                 <button
                   onClick={() => setActiveNav('trending_today')}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all
-                    ${activeNav === 'trending_today' 
-                      ? 'bg-[#0B192C]/10 text-[#0B192C] border-l-4 border-[#0B192C]' 
+                    ${activeNav === 'trending_today'
+                      ? 'bg-[#0B192C]/10 text-[#0B192C] border-l-4 border-[#0B192C]'
                       : 'text-[#0B192C]/70 hover:bg-[#EAF6FF]/40 hover:text-[#0B192C]'}`}
                 >
                   <Flame className="h-4 w-4" />
@@ -460,8 +461,8 @@ export default function CommunityPage() {
                 <button
                   onClick={() => setActiveNav('my_saved_posts')}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-xs font-semibold transition-all
-                    ${activeNav === 'my_saved_posts' 
-                      ? 'bg-[#0B192C]/10 text-[#0B192C] border-l-4 border-[#0B192C]' 
+                    ${activeNav === 'my_saved_posts'
+                      ? 'bg-[#0B192C]/10 text-[#0B192C] border-l-4 border-[#0B192C]'
                       : 'text-[#0B192C]/70 hover:bg-[#EAF6FF]/40 hover:text-[#0B192C]'}`}
                 >
                   <Bookmark className="h-4 w-4" />
@@ -481,8 +482,8 @@ export default function CommunityPage() {
                     key={cat}
                     onClick={() => { setActiveTab(cat); setActiveNav('all_discussions'); }}
                     className={`text-[10px] font-bold px-2.5 py-1 rounded-md transition-colors
-                      ${activeTab === cat 
-                        ? 'bg-[#0B192C] text-white' 
+                      ${activeTab === cat
+                        ? 'bg-[#0B192C] text-white'
                         : 'bg-[#EAF6FF] text-[#0B192C] hover:bg-[#DCEFFF]'}`}
                   >
                     #{cat.replace(/\s+/g, '')}
@@ -512,7 +513,7 @@ export default function CommunityPage() {
 
           {/* MIDDLE COLUMN: MAIN FEED */}
           <div className="lg:col-span-6 space-y-4">
-            
+
             {/* Sorting Tabs & Create trigger */}
             <div className="flex justify-between items-center bg-white border border-[#D4AF37]/10 p-2.5 rounded-2xl shadow-sm">
               <div className="flex items-center gap-1">
@@ -522,8 +523,8 @@ export default function CommunityPage() {
                     key={tab}
                     onClick={() => setSortBy(tab)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all
-                      ${sortBy === tab 
-                        ? 'bg-[#EAF6FF] text-[#0B192C] font-bold' 
+                      ${sortBy === tab
+                        ? 'bg-[#EAF6FF] text-[#0B192C] font-bold'
                         : 'text-[#0B192C]/70 hover:bg-[#EAF6FF]/20'}`}
                   >
                     {tab}
@@ -559,49 +560,53 @@ export default function CommunityPage() {
                 {processedPosts.map((post) => {
                   const comments = commentsMap[post.id] || [];
                   const isExpanded = expandedComments[post.id] || false;
-                  const score = Math.max(0, (post.likes || 0) - (post.disagree_votes || 0));
-                  
+
                   return (
-                    <div 
-                      key={post.id} 
+                    <div
+                      key={post.id}
                       id={`post-${post.id}`}
                       className="bg-white p-4 md:p-5 rounded-2xl border border-[#D4AF37]/15 hover:border-[#D4AF37]/35 transition-all shadow-sm flex items-start gap-4 relative overflow-hidden"
                     >
                       {/* VOTE COMPONENT (Left Side) */}
-                      <div className="flex flex-col items-center bg-[#EAF6FF]/30 p-1 rounded-xl border border-[#DCEFFF] w-11 shrink-0 select-none">
-                        <button 
+                      <div className="flex flex-col gap-2.5 items-center bg-[#EAF6FF]/35 p-2 rounded-2xl border border-[#DCEFFF] w-[72px] shrink-0 select-none font-sans">
+                        <button
                           onClick={() => handleVote(post.id, 'agree')}
-                          className={`p-1 rounded-lg hover:bg-[#EAF6FF]/80 transition-colors
-                            ${userVotes[post.id] === 'agree' ? 'text-green-600 bg-green-50' : 'text-[#0B192C]/40'}`}
-                          title="Agree"
+                          className={`w-full flex flex-col items-center py-2 rounded-xl transition-all duration-200 cursor-pointer active:scale-95 border
+                            ${userVotes[post.id] === 'agree' 
+                              ? 'bg-green-600 border-green-600 text-white font-bold shadow-sm' 
+                              : 'bg-white hover:bg-green-50 border-[#DCEFFF] text-green-600'}`}
+                          title="Agree with this post"
                         >
-                          <ChevronUp className="h-5 w-5 stroke-[3.5]" />
+                          <ThumbsUp className="h-4 w-4 stroke-[2.5]" />
+                          <span className="text-[9px] font-bold mt-1 uppercase tracking-wide">Agree</span>
+                          <span className="text-xs font-black mt-0.5">{post.likes || 0}</span>
                         </button>
-                        
-                        <span className={`text-xs font-black my-0.5 
-                          ${score > 0 ? 'text-green-600' : 'text-[#0B192C]/70'}`}>
-                          {score}
-                        </span>
 
-                        <button 
+                        <div className="w-8 border-t border-[#DCEFFF]/60"></div>
+
+                        <button
                           onClick={() => handleVote(post.id, 'disagree')}
-                          className={`p-1 rounded-lg hover:bg-[#EAF6FF]/80 transition-colors
-                            ${userVotes[post.id] === 'disagree' ? 'text-red-500 bg-red-50' : 'text-[#0B192C]/40'}`}
-                          title="Disagree"
+                          className={`w-full flex flex-col items-center py-2 rounded-xl transition-all duration-200 cursor-pointer active:scale-95 border
+                            ${userVotes[post.id] === 'disagree' 
+                              ? 'bg-red-500 border-red-500 text-white font-bold shadow-sm' 
+                              : 'bg-white hover:bg-red-50 border-[#DCEFFF] text-red-500'}`}
+                          title="Disagree with this post"
                         >
-                          <ChevronDown className="h-5 w-5 stroke-[3.5]" />
+                          <ThumbsDown className="h-4 w-4 stroke-[2.5]" />
+                          <span className="text-[9px] font-bold mt-1 uppercase tracking-wide">Disagree</span>
+                          <span className="text-xs font-black mt-0.5">{post.disagree_votes || 0}</span>
                         </button>
                       </div>
 
                       {/* CONTENT PANEL (Right Side) */}
                       <div className="flex-1 space-y-3 min-w-0">
-                        
+
                         {/* Author Header */}
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-2">
                             <div className={`h-7 w-7 rounded-full flex items-center justify-center font-bold font-serif text-[11px] border shadow-sm
-                              ${post.anonymous 
-                                ? 'bg-gray-100 text-gray-500 border-gray-200' 
+                              ${post.anonymous
+                                ? 'bg-gray-100 text-gray-500 border-gray-200'
                                 : 'bg-[#EAF6FF] text-[#0B192C] border-[#D4AF37]/30'}`}>
                               {post.anonymous ? 'A' : post.author_name.charAt(0).toUpperCase()}
                             </div>
@@ -619,7 +624,7 @@ export default function CommunityPage() {
                               </span>
                             </div>
                           </div>
-                          
+
                           {/* Share Toast notifier */}
                           {shareToast === post.id && (
                             <span className="text-[9px] font-bold text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-md animate-fade-in absolute right-12 top-4">
@@ -693,7 +698,7 @@ export default function CommunityPage() {
                         {isExpanded && (
                           <div className="mt-4 border-t border-gray-100 pt-4 space-y-3 animate-fade-in">
                             <h4 className="text-[10px] font-black text-[#D4AF37] uppercase tracking-wider">Comments</h4>
-                            
+
                             {comments.length === 0 ? (
                               <p className="text-[10px] text-[#0B192C]/50 italic py-1 pl-2">
                                 No comments posted yet. Start the discussion!
@@ -753,7 +758,7 @@ export default function CommunityPage() {
 
           {/* RIGHT COLUMN: WIDGETS */}
           <div className="lg:col-span-3 hidden lg:block space-y-5">
-            
+
             {/* STATS PANEL */}
             <div className="bg-white rounded-2xl border border-[#D4AF37]/15 p-4 space-y-4 shadow-sm">
               <h3 className="text-[10px] font-extrabold uppercase tracking-widest text-[#0B192C]/40 border-b border-[#EAF6FF] pb-2">
@@ -838,7 +843,7 @@ export default function CommunityPage() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-[#0B192C]/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white border border-[#D4AF37]/30 rounded-3xl max-w-xl w-full p-6 space-y-5 relative shadow-2xl overflow-y-auto max-h-[90vh]">
-            
+
             <div className="flex justify-between items-center border-b border-[#EAF6FF] pb-3">
               <h2 className="font-serif text-xl font-extrabold text-[#0B192C] flex items-center gap-2">
                 <Users className="h-5 w-5 text-[#D4AF37]" />
@@ -874,7 +879,7 @@ export default function CommunityPage() {
             )}
 
             <form onSubmit={handleCreatePost} className="space-y-4">
-              
+
               {/* Title */}
               <div className="space-y-1">
                 <label className="text-[9px] font-black text-[#D4AF37] uppercase tracking-widest block">Thread Title</label>
@@ -935,7 +940,7 @@ export default function CommunityPage() {
               {/* Photo Upload area */}
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-[#D4AF37] uppercase tracking-widest block">Stitch Photos (Max 4)</label>
-                
+
                 {/* Previews */}
                 {selectedImages.length > 0 && (
                   <div className="flex flex-wrap gap-2.5 p-2 bg-[#EAF6FF]/20 rounded-xl border border-[#DCEFFF]">

@@ -181,11 +181,18 @@ export default function Signup() {
     }
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      // Add a timeout to prevent hanging if Supabase is sleeping/waking up
+      const signupPromise = supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
         options: { data: { full_name: fullName.trim(), role: 'user' } },
       });
+
+      const timeoutPromise = new Promise<{ data: any, error: any }>((_, reject) => 
+        setTimeout(() => reject(new Error('Server is taking too long to respond (it may be waking up from sleep). Please try again in 1-2 minutes.')), 15000)
+      );
+
+      const { data, error } = await Promise.race([signupPromise, timeoutPromise]);
 
       if (error) {
         if (error.status === 422 || error.message.includes('422')) {
@@ -199,7 +206,7 @@ export default function Signup() {
         return;
       }
 
-      if (data.user && !data.session) {
+      if (data?.user && !data?.session) {
         // Email verification required — show dedicated verify screen
         setShowVerify(true);
       } else {
